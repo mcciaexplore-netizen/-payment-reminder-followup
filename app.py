@@ -7,11 +7,9 @@ HuggingFace : pushed as a Streamlit Space (auto-deploys)
 Two modes detected automatically:
   LOCAL MODE  — SPACE_ID env var is NOT set
                 → shows setup wizard if credentials are missing
-                → no time limit
 
   DEMO MODE   — SPACE_ID env var IS set (HuggingFace Spaces)
                 → uses MCCIA's API keys (set as HF Secrets)
-                → 5-minute IP-based trial, then blocks
 """
 
 import json
@@ -35,9 +33,6 @@ from config import (
     DRY_RUN, LOG_PATH,
 )
 from tools import filter_overdue, log_reminder_sent, read_invoices, send_email
-
-if IS_HF:
-    from trial import check_ip, get_client_ip
 
 # ─────────────────────────────────────────────────────────────
 # Page setup
@@ -192,19 +187,6 @@ with st.sidebar:
     st.divider()
 
     if IS_HF:
-        # Show trial timer on HuggingFace
-        ip    = get_client_ip()
-        trial = check_ip(ip)
-        if trial["allowed"]:
-            st.markdown("### ⏱ Trial time remaining")
-            st.progress(
-                trial["seconds_remaining"] / 300,
-                text=f"{trial['minutes']}:{trial['seconds']:02d}",
-            )
-            st.caption("Time resets if you open the app in a new browser.")
-            if st.button("🔄 Refresh timer"):
-                st.rerun()
-        st.divider()
         st.markdown("**Mode:** 🌐 HuggingFace Demo")
         st.markdown("Want your own copy?")
         st.markdown("[Contact MCCIA AI Studio →](https://mcciapune.com)")
@@ -241,29 +223,6 @@ with st.sidebar:
 st.title("📬 Payment Follow-up Agent")
 st.caption("Upload invoices → AI drafts personalised reminders → you approve → send")
 st.divider()
-
-
-# ═════════════════════════════════════════════════════════════
-# BLOCKED PAGE  (HuggingFace trial expired)
-# ═════════════════════════════════════════════════════════════
-
-def page_blocked():
-    st.error("⏰ Your 5-minute free trial has ended.")
-    st.markdown("### What next?")
-    st.markdown(
-        "This was a demo of the **Payment Follow-up Agent** built by "
-        "**MCCIA Applied AI Studio** for MSMEs across Maharashtra.\n\n"
-        "To get your own copy of this agent — customised with your branding, "
-        "your email, and no time limits — contact us:"
-    )
-    col1, col2 = st.columns(2)
-    col1.markdown("📧 ismail.fellow@mcciapune.com")
-    col2.markdown("📞 +91 88558 85290")
-    st.markdown("[Visit MCCIA AI Studio →](https://mcciapune.com)")
-    st.info(
-        "The full source code is also available for MSMEs who want to "
-        "self-host. Ask us for the GitHub link."
-    )
 
 
 # ═════════════════════════════════════════════════════════════
@@ -675,7 +634,7 @@ def page_done():
         st.markdown("### Want your own copy of this agent?")
         st.markdown(
             "This demo runs with MCCIA's API keys. Get your own copy — "
-            "with your branding, your Gmail, and no time limits."
+            "with your branding and your own Gmail."
         )
         c1, c2 = st.columns(2)
         c1.markdown("📧 ismail.fellow@mcciapune.com")
@@ -691,13 +650,6 @@ def page_done():
 # ─────────────────────────────────────────────────────────────
 # Router — decide which page to show
 # ─────────────────────────────────────────────────────────────
-
-if IS_HF:
-    ip    = get_client_ip()
-    trial = check_ip(ip)
-    if not trial["allowed"]:
-        page_blocked()
-        st.stop()
 
 step = st.session_state.step
 
