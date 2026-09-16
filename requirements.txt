@@ -1,7 +1,12 @@
-# All free — no paid API subscriptions needed
-groq>=0.9.0           # Free LLM API (Llama 3.3 70B)
-streamlit>=1.35.0     # Web UI — opens in browser, no HTML/CSS needed
-pandas>=2.0.0         # Excel + data processing
-openpyxl>=3.1.0       # .xlsx read/write support for pandas
-python-dotenv>=1.0.0  # Load .env file
-# smtplib, csv, json, tempfile are built into Python — no install needed
+# Direct dependencies pinned to the versions used for development and checks.
+# AI wording is optional; provider quotas and costs depend on the account.
+groq==1.7.0
+streamlit==1.62.0
+pandas==3.0.3
+openpyxl==3.1.5
+python-dotenv==1.2.2
+tzdata==2026.3
+cryptography==50.0.1
+httpx==0.28.1
+starlette==1.6.0
+uvicorn==0.53.0
