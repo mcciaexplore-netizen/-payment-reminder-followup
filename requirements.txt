@@ -1,4 +1,5 @@
 # Direct dependencies pinned to the versions used for development and checks.
+# Keep pins aligned with pyproject.toml, which Vercel uses for installation.
 # AI wording is optional; provider quotas and costs depend on the account.
 groq==1.7.0
 streamlit==1.62.0
