@@ -1,0 +1,64 @@
+name: payment-workspace
+
+x-workspace: &workspace
+  build:
+    context: .
+    dockerfile: Dockerfile.workspace
+  image: payment-workspace:local
+  restart: unless-stopped
+  init: true
+  env_file: .env.server
+  environment:
+    APP_MODE: local
+    SPACE_ID: ""
+    WORKSPACE_DATABASE_PATH: /app/.data/workspace.sqlite3
+  volumes:
+    - workspace-data:/app/.data
+
+services:
+  web:
+    <<: *workspace
+    # Set up the first owner over an SSH tunnel before enabling public HTTPS.
+    ports:
+      - "127.0.0.1:8501:8501"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *workspace
+    command: ["python", "worker.py"]
+    stop_grace_period: 2m
+    healthcheck:
+      test: ["CMD", "python", "worker_health.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      web:
+        condition: service_healthy
+
+  https:
+    image: caddy:2-alpine
+    profiles: ["public"]
+    restart: unless-stopped
+    env_file: .env.server
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  workspace-data:
+  caddy-data:
+  caddy-config:

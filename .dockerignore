@@ -1,0 +1,17 @@
+.git
+.venv
+.env
+.env.*
+.data
+.pytest_cache
+__pycache__
+**/__pycache__
+*.xlsx
+*.csv
+*.sqlite*
+.streamlit/secrets.toml
+tmp
+output
+backups
+connector-key-backup
+tests

@@ -1,0 +1,5 @@
+{$APP_DOMAIN} {
+    # WebSocket upgrades are forwarded automatically. Access logs are omitted
+    # because customer portal URLs contain private access tokens.
+    reverse_proxy web:8501
+}

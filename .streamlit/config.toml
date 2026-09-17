@@ -1,0 +1,43 @@
+[server]
+address = "127.0.0.1"
+headless = true
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+# MCCIA uses Candara for copy, Segoe for section headings and Segoe UI for navigation.
+# Use the installed font; no font binaries or third-party font requests are needed.
+[theme]
+base = "light"
+font = "Candara, sans-serif"
+headingFont = "Segoe, sans-serif"
+primaryColor = "#146CAA"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F7FA"
+textColor = "#172B3A"
+linkColor = "#146CAA"
+borderColor = "#DCE3E9"
+showWidgetBorder = true
+showSidebarBorder = true
+dataframeHeaderBackgroundColor = "#F4F7FA"
+baseFontSize = 17
+baseFontWeight = 400
+headingFontSizes = ["38px", "29px", "23px", "19px", "17px", "15px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "2rem"
+baseRadius = "8px"
+buttonRadius = "8px"
+chartCategoricalColors = ["#146CAA", "#3B9271", "#83A5BF", "#D3A055", "#5A7187", "#9A7C91"]
+
+[theme.sidebar]
+font = "'Segoe UI', sans-serif"
+headingFont = "Segoe, sans-serif"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F7FA"
+textColor = "#172B3A"
+primaryColor = "#146CAA"
+borderColor = "#DCE3E9"
