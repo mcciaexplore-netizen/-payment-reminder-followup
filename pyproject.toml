@@ -1,0 +1,21 @@
+[project]
+name = "mccia-payment-workspace"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+# Keep these pins aligned with requirements.txt for local and Docker installs.
+dependencies = [
+    "groq==1.7.0",
+    "streamlit==1.62.0",
+    "pandas==3.0.3",
+    "openpyxl==3.1.5",
+    "python-dotenv==1.2.2",
+    "tzdata==2026.3",
+    "cryptography==50.0.1",
+    "httpx==0.28.1",
+    "starlette==1.6.0",
+    "uvicorn==0.53.0",
+]
+
+# app.py is the Streamlit UI script; the ASGI application is exported separately.
+[tool.vercel]
+entrypoint = "asgi_app:app"

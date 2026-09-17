@@ -6,6 +6,7 @@ import sys
 import textwrap
 import socket
 import time
+import tomllib
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
@@ -13,8 +14,21 @@ from urllib.request import urlopen
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_vercel_and_pip_install_the_same_runtime_dependencies():
+    with (ROOT / "pyproject.toml").open("rb") as config_file:
+        project = tomllib.load(config_file)["project"]
+    pip_requirements = {
+        line.strip() for line in (ROOT / "requirements.txt").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert set(project["dependencies"]) == pip_requirements
+    assert project["requires-python"] == ">=3.12,<3.13"
+
+
 def test_asgi_entrypoint_serves_http_and_websocket_from_another_directory(tmp_path):
     # Streamlit has process-global runtime state, so isolate this from AppTest.
+    with (ROOT / "pyproject.toml").open("rb") as config_file:
+        entrypoint = tomllib.load(config_file)["tool"]["vercel"]["entrypoint"]
     environment = {
         **os.environ,
         "PYTHONPATH": str(ROOT),
@@ -23,15 +37,18 @@ def test_asgi_entrypoint_serves_http_and_websocket_from_another_directory(tmp_pa
         "WORKSPACE_LIVE_ENABLED": "false",
         "WORKSPACE_DEMO_LOGIN_ENABLED": "false",
         "APP_MODE": "local",
+        "DEPLOYMENT_ENTRYPOINT": entrypoint,
     }
     environment.pop("SPACE_ID", None)
     check = textwrap.dedent("""\
         import os
+        from importlib import import_module
         from pathlib import Path
         from starlette.testclient import TestClient
         from streamlit.proto.BackMsg_pb2 import BackMsg
         from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
-        from asgi_app import app as application
+        module_name, variable_name = os.environ["DEPLOYMENT_ENTRYPOINT"].split(":", 1)
+        application = getattr(import_module(module_name), variable_name)
 
         # Loading the server must not execute the UI or create an account database.
         assert not Path(os.environ["WORKSPACE_DATABASE_PATH"]).exists()

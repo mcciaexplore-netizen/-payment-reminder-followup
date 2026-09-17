@@ -11,11 +11,20 @@ network filesystem or replicas on separate machines. Keep an off-server backup.
 
 ## Why the Vercel build failed
 
-The reported build used `main` at `30b1012`. `app.py` is a Streamlit script, not
-an exported Python HTTP application. The new `asgi_app.py` exports Streamlit's
-ASGI application and also mounts the customer and webhook routes. It does not
-make the database durable or supervise a worker on a serverless host. This
-deployment therefore uses a persistent server for the complete application.
+`app.py` is a Streamlit UI script, not an exported Python HTTP application.
+Vercel's automatic entry-point detection picks that filename before the separate
+ASGI wrapper. `pyproject.toml` now explicitly selects `asgi_app:app` using
+[Vercel's Python entry-point setting](https://vercel.com/docs/functions/runtimes/python#python-entrypoints).
+Vercel reads the pinned runtime dependencies from `pyproject.toml`; local and
+Docker installs use the matching `requirements.txt`. Deployment tests keep the
+two dependency lists aligned. Both deployments use Python 3.12.
+
+`asgi_app.py` exports Streamlit's ASGI application and also mounts the customer
+and webhook routes. Selecting this entry point resolves the reported detection
+error; it does not make the database durable or supervise a worker on a
+serverless host. This deployment therefore uses a persistent server for the
+complete application. Redeploying the old commit will still use its old
+configuration; a build must include `pyproject.toml` to use the explicit setting.
 
 ### Connected Vercel projects
 
@@ -191,7 +200,8 @@ turning on live operations. It is suitable for a controlled single-server pilot.
 
 ## Checks
 
-`tests/test_deployment.py` verifies ASGI import, HTTP routes and first-owner UI
+`tests/test_deployment.py` loads the configured Vercel entry point and verifies
+ASGI import, HTTP routes and first-owner UI
 rendering over a WebSocket from an unrelated directory using temporary data.
 The Linux CI container job builds the image, checks the internal services and
 verifies that storage survives container replacement. A real server still needs
