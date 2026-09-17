@@ -12,9 +12,11 @@ from webhooks import create_app
 
 # Serve private customer links and signed callbacks on the same HTTPS origin.
 # Creating the routes does not open the workspace database.
+http_routes = create_app()
 app = st.App(
     Path(__file__).resolve().with_name("app.py"),
-    routes=create_app().routes,
+    routes=http_routes.routes,
+    exception_handlers=http_routes.exception_handlers,
 )
 
 # Streamlit initializes Uvicorn log handlers during import, after the CLI has

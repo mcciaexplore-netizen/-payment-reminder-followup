@@ -23,8 +23,13 @@ from webhooks import create_app
 from workspace_store import WorkspaceError,WorkspaceStore
 
 
-@pytest.fixture
-def ws(tmp_path):
+@pytest.fixture(params=["sqlite", "libsql"])
+def ws(tmp_path, request, monkeypatch):
+    if request.param == "libsql":
+        # Exercise the actual libSQL driver/row adapter, using an isolated local
+        # database so money, authorization and concurrency tests need no secrets.
+        from workspace_storage import RemoteConnection
+        monkeypatch.setattr(WorkspaceStore, "connect", lambda self: RemoteConnection(str(self.path), ""))
     store=WorkspaceStore(tmp_path/"workspace.sqlite3")
     instant=[datetime(2026,9,16,6,0,tzinfo=timezone.utc)]
     clock=lambda:instant[0]

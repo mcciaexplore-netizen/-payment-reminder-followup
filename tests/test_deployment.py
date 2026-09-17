@@ -80,6 +80,12 @@ def test_asgi_entrypoint_serves_http_and_websocket_from_another_directory(tmp_pa
             event = client.post("/webhooks/unknown/payments", json={})
             assert event.status_code == 400
             assert "Verify the signature" in event.json()["error"]
+            import sqlite3
+            from unittest.mock import patch
+            with patch("webhooks.WorkspaceStore", side_effect=sqlite3.OperationalError("private connection details")):
+                unavailable = client.get("/portal/invalid")
+                assert unavailable.status_code == 503
+                assert "private connection details" not in unavailable.text
         """)
     completed = subprocess.run(
         [sys.executable, "-c", check], cwd=tmp_path, env=environment,

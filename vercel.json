@@ -2,5 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "functions": {
+    "asgi_app.py": {
+      "maxDuration": 300,
+      "excludeFiles": "{.data/**,.env,.env.*,tests/**,tmp/**,backups/**,output/**,.venv/**,**/__pycache__/**}"
+    }
+  },
+  "crons": [
+    { "path": "/api/reminders/tick", "schedule": "30 4 * * *" }
+  ]
 }

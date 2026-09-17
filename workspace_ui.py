@@ -10,10 +10,11 @@ from connectors import Connectors,Vault
 from ledger import Ledger
 from scheduling import Scheduling,Worker
 from workspace_store import WorkspaceError,WorkspaceStore
+from workspace_storage import database_location
 
 
 def database_path():
-    return Path(os.getenv("WORKSPACE_DATABASE_PATH",str(config.ROOT/".data"/"workspace.sqlite3")))
+    return database_location()
 
 
 def context():
@@ -25,7 +26,7 @@ def context():
     current=next((b for b in companies if b["id"]==business),None)
     if current is None:
         raise WorkspaceError("Sign in and choose a business.")
-    gateway=Connectors(store,Vault(database_path().parent))
+    gateway=Connectors(store,Vault(store.key_directory))
     return {"store":store,"token":token,"business":business,"company":current,"accounts":accounts,
             "ledger":Ledger(store,token,business),"features":BusinessFeatures(store,token,business),
             "scheduling":Scheduling(store,token,business),"connectors":gateway,"worker":Worker(store,gateway)}

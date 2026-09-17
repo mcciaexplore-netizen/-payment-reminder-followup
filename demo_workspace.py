@@ -137,12 +137,12 @@ def main():
     from pathlib import Path
     import config
     from workspace_store import WorkspaceStore
+    from workspace_storage import database_location
 
     parser = argparse.ArgumentParser(description="Add fictional sample data to the configured demo account")
-    parser.add_argument("--database", type=Path, default=Path(os.getenv(
-        "WORKSPACE_DATABASE_PATH", str(config.ROOT / ".data" / "workspace.sqlite3"))))
+    parser.add_argument("--database", help="SQLite file path or hosted libSQL URL")
     args = parser.parse_args()
-    store = WorkspaceStore(args.database)
+    store = WorkspaceStore(args.database or database_location())
     token = None
     try:
         token, business = login_demo(store)

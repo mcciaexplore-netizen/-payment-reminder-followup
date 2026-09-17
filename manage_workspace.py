@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from contextlib import closing
 import config
+from workspace_storage import database_location, is_remote
 
 
 def backup(database,destination):
@@ -31,11 +32,14 @@ def backup(database,destination):
 
 def main():
     parser=argparse.ArgumentParser(description="Create a consistent backup of the business workspace")
-    parser.add_argument("--database",type=Path,default=Path(os.getenv("WORKSPACE_DATABASE_PATH",str(config.ROOT/".data"/"workspace.sqlite3"))))
+    parser.add_argument("--database",help="Local SQLite file to back up")
     parser.add_argument("--output",type=Path,required=True)
     args=parser.parse_args()
     try:
-        backup(args.database,args.output)
+        database=args.database or database_location()
+        if is_remote(database):
+            raise ValueError("Use the hosted database provider's export/backup tools for remote SQLite.")
+        backup(database,args.output)
     except (ValueError,OSError,sqlite3.Error) as exc:
         parser.error(str(exc))
     print("Backup created and checked. Store the connector encryption key separately; it is required to restore saved credentials.")

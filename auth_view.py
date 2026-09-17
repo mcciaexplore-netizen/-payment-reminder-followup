@@ -1,5 +1,6 @@
 """A focused entry screen with native, accessible Streamlit account forms."""
 import streamlit as st
+import os
 
 from branding import show_header_logo
 from demo_workspace import demo_credentials, login_demo
@@ -25,16 +26,21 @@ def render_access(accounts, store):
         with access, st.container(key="auth_panel"):
             if not accounts.initialized():
                 st.subheader("Set up your business")
+                protected = os.getenv("VERCEL")=="1" or bool(os.getenv("WORKSPACE_SETUP_TOKEN")) or store.remote
+                if protected and len(os.getenv("WORKSPACE_SETUP_TOKEN","")) < 32:
+                    st.info("An administrator needs to configure a private setup code before the first account can be created.")
+                    return
                 st.caption("Create your first owner account to get started.")
                 with st.form("ws_setup"):
                     name=st.text_input("Business name",placeholder="Your business name")
                     email=st.text_input("Owner email",placeholder="you@business.com")
                     password=st.text_input("Password",type="password",help="Use at least 12 characters.")
                     tz=st.text_input("Business timezone",value="Asia/Kolkata")
+                    setup_token=st.text_input("Workspace setup code",type="password") if protected else ""
                     submitted=st.form_submit_button("Create business",type="primary",width="stretch")
                 if submitted:
                     try:
-                        st.session_state.ws_token,st.session_state.ws_business=accounts.bootstrap(email,password,name,tz)
+                        st.session_state.ws_token,st.session_state.ws_business=accounts.bootstrap(email,password,name,tz,setup_token=setup_token)
                         st.rerun()
                     except (WorkspaceError,ValueError) as exc:
                         st.error(str(exc))
