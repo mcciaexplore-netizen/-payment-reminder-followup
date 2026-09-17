@@ -4,6 +4,7 @@ This exports a real web application for ASGI hosts. Deployment still needs
 durable workspace storage and a separately supervised reminder worker.
 """
 from pathlib import Path
+import logging
 
 import streamlit as st
 from webhooks import create_app
@@ -15,3 +16,7 @@ app = st.App(
     Path(__file__).resolve().with_name("app.py"),
     routes=create_app().routes,
 )
+
+# Streamlit initializes Uvicorn log handlers during import, after the CLI has
+# applied --no-access-log. Disable this logger explicitly to protect portal URLs.
+logging.getLogger("uvicorn.access").disabled = True
