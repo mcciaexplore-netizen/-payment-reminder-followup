@@ -17,6 +17,20 @@ ASGI application and also mounts the customer and webhook routes. It does not
 make the database durable or supervise a worker on a serverless host. This
 deployment therefore uses a persistent server for the complete application.
 
+### Connected Vercel projects
+
+`vercel.json` disables automatic Git deployments to Vercel, following
+[Vercel's Git configuration](https://vercel.com/docs/project-configuration/git-configuration#turning-off-all-automatic-deployments).
+This repository's deployment target is the persistent-server stack below.
+GitHub's application and container checks continue to run on pushes and PRs.
+
+The setting applies to commits containing this file. An older deployment's
+failed status remains in that commit's history; inspect the newest PR commit
+after pushing this configuration. Merge the configuration into `main` to stop
+automatic Vercel deployments from that branch as well. This does not delete the
+connected Vercel projects or turn a manual Vercel deployment into a full-server
+deployment.
+
 `Dockerfile.workspace` runs the full app. The original `Dockerfile` remains the
 isolated legacy preview used by the existing demo deployment.
 
