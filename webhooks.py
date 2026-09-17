@@ -3,6 +3,7 @@ import json
 import os
 import html
 import hmac
+import sqlite3
 from urllib.parse import parse_qs
 from pathlib import Path
 
@@ -17,10 +18,15 @@ from connectors import Connectors, Vault
 from workspace_store import WorkspaceError, WorkspaceStore
 from business_features import portal_data,portal_action
 from accounts import digest
+from workspace_storage import database_location, StorageConfigurationError
+from scheduled_tasks import run_scheduled_tasks
 
 
 def create_app(connectors=None):
     # Delay database/key access until startup; importing this module has no writes.
+    async def storage_unavailable(request, exc):
+        return JSONResponse({"error":"Workspace storage is unavailable. Contact the administrator."},status_code=503,
+                            headers={"Cache-Control":"no-store"})
     async def receive(request:Request):
         if config.IS_DEMO:
             return JSONResponse({"error":"Webhooks are disabled in demo mode."},status_code=403)
@@ -31,9 +37,9 @@ def create_app(connectors=None):
                 return JSONResponse({"error":"Request too large."},status_code=413)
         gateway=connectors
         if gateway is None:
-            path=Path(os.getenv("WORKSPACE_DATABASE_PATH",str(config.ROOT/".data"/"workspace.sqlite3")))
+            path=database_location()
             store=WorkspaceStore(path)
-            gateway=Connectors(store,Vault(path.parent))
+            gateway=Connectors(store,Vault(store.key_directory))
         try:
             result=await run_in_threadpool(gateway.webhook,request.path_params["business"],request.path_params["kind"],bytes(raw),
                 request.headers.get("x-reminder-timestamp",""),request.headers.get("x-reminder-signature",""))
@@ -49,7 +55,7 @@ def create_app(connectors=None):
         if config.IS_DEMO:
             return HTMLResponse("Customer access is disabled in demo mode.",status_code=403)
         token=request.path_params["token"]
-        path=Path(os.getenv("WORKSPACE_DATABASE_PATH",str(config.ROOT/".data"/"workspace.sqlite3")))
+        path=database_location()
         store=connectors.store if connectors else WorkspaceStore(path)
         headers={"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff",
                  "Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}
@@ -81,7 +87,8 @@ def create_app(connectors=None):
         except (WorkspaceError,ValueError,KeyError,UnicodeDecodeError):
             return HTMLResponse("This customer link or request is invalid or expired. Contact the business for assistance.",status_code=400,headers=headers)
 
-    return Starlette(routes=[Route("/health",health),Route("/webhooks/{business}/{kind}",receive,methods=["POST"]),Route("/portal/{token}",portal,methods=["GET","POST"])])
+    return Starlette(routes=[Route("/health",health),Route("/api/reminders/tick",run_scheduled_tasks,methods=["GET"]),Route("/webhooks/{business}/{kind}",receive,methods=["POST"]),Route("/portal/{token}",portal,methods=["GET","POST"])],
+                     exception_handlers={sqlite3.Error:storage_unavailable,StorageConfigurationError:storage_unavailable})
 
 
 app=create_app()

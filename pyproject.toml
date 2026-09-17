@@ -14,6 +14,7 @@ dependencies = [
     "httpx==0.28.1",
     "starlette==1.6.0",
     "uvicorn==0.53.0",
+    "libsql==0.1.11",
 ]
 
 # app.py is the Streamlit UI script; the ASGI application is exported separately.

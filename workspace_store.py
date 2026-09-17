@@ -4,6 +4,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from reminders import ReminderStore
+from workspace_storage import connect_remote, is_remote, remote_credentials, validate_remote_url
 
 
 def utcnow():
@@ -27,7 +28,13 @@ def business_today(db, business, now=None):
 
 class WorkspaceStore(ReminderStore):
     def __init__(self, path):
-        super().__init__(path)
+        self.remote = is_remote(path)
+        if self.remote:
+            self.path = validate_remote_url(path)
+            remote_credentials()
+            self._initialize_schema()
+        else:
+            super().__init__(path)
         with closing(self.connect()) as db:
             db.executescript("""
             CREATE TABLE IF NOT EXISTS ws_schema(version INTEGER PRIMARY KEY);
@@ -99,6 +106,13 @@ class WorkspaceStore(ReminderStore):
             CREATE TABLE IF NOT EXISTS ws_branding(
                 business_id TEXT PRIMARY KEY, settings TEXT NOT NULL);
             """)
+
+    @property
+    def key_directory(self):
+        return None if self.remote else self.path.parent
+
+    def connect(self):
+        return connect_remote(self.path) if self.remote else super().connect()
 
     @staticmethod
     def audit(db, business, actor, action, detail, now):

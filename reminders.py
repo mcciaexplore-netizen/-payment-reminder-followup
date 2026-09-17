@@ -80,6 +80,11 @@ class ReminderStore:
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._initialize_schema()
+        if os.name != "nt":
+            self.path.chmod(0o600)
+
+    def _initialize_schema(self):
         with closing(self.connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS invoices (
@@ -102,8 +107,6 @@ class ReminderStore:
                     confirmed_at TEXT NOT NULL
                 );
             """)
-        if os.name != "nt":
-            self.path.chmod(0o600)
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10, isolation_level=None)

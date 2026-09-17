@@ -12,15 +12,24 @@ from demo_workspace import SEED_ACTION
 from ui_design import page_heading
 from workspace_store import WorkspaceError,WorkspaceStore
 from workspace_ui import database_path
+from workspace_storage import StorageConfigurationError
 
 
 def main():
     configure_page()
     try:
         store=WorkspaceStore(database_path())
+    except StorageConfigurationError as exc:
+        st.title("Payment follow-up")
+        st.error("Workspace storage setup is incomplete.")
+        st.info(str(exc))
+        return
     except (sqlite3.Error,OSError):
         st.title("Payment follow-up")
-        st.error("The private workspace database could not be opened. Check the configured data folder and the app's permission to read and write it.")
+        if os.getenv("WORKSPACE_DATABASE_URL") or os.getenv("TURSO_DATABASE_URL"):
+            st.error("The hosted workspace database could not be reached. Check the database connection settings and service availability.")
+        else:
+            st.error("The private workspace database could not be opened. Check the configured data folder and the app's permission to read and write it.")
         return
     accounts=Accounts(store)
     st.session_state.setdefault("ws_token","")

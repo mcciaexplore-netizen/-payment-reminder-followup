@@ -1,6 +1,7 @@
 """Password accounts, expiring sessions, invitations and transaction-time authorization."""
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -61,7 +62,11 @@ class Accounts:
                    (digest(token), user, (self.clock()+timedelta(hours=12)).isoformat()))
         return token
 
-    def bootstrap(self, email, password, name, timezone="Asia/Kolkata"):
+    def bootstrap(self, email, password, name, timezone="Asia/Kolkata", *, setup_token=""):
+        expected = os.getenv("WORKSPACE_SETUP_TOKEN", "")
+        if os.getenv("VERCEL") == "1" or expected or getattr(self.store,"remote",False):
+            if len(expected) < 32 or not hmac.compare_digest(expected.encode(), str(setup_token).encode()):
+                raise WorkspaceError("A valid workspace setup code is required from the administrator.")
         email, hashed = email_address(email).casefold(), password_hash(password)
         with self.store.transaction() as db:
             if db.execute("SELECT 1 FROM ws_users LIMIT 1").fetchone():

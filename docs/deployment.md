@@ -1,5 +1,8 @@
 # Deploy the full workspace on one server
 
+This guide keeps SQLite on a persistent local disk. For Vercel with a hosted
+SQLite-compatible database, use [the hosted SQLite guide](hosted-sqlite.md).
+
 This setup runs the authenticated app, customer portal and provider callbacks
 behind one HTTPS address. A separate worker processes schedules when nobody has
 the website open. Both services share a persistent Docker volume containing the
@@ -22,8 +25,9 @@ two dependency lists aligned. Both deployments use Python 3.12.
 `asgi_app.py` exports Streamlit's ASGI application and also mounts the customer
 and webhook routes. Selecting this entry point resolves the reported detection
 error; it does not make the database durable or supervise a worker on a
-serverless host. This deployment therefore uses a persistent server for the
-complete application. Redeploying the old commit will still use its old
+serverless host. The local-file deployment therefore uses a persistent server;
+the hosted SQLite option supplies remote storage and an authenticated scheduled
+reminder route. Redeploying the old commit will still use its old
 configuration; a build must include `pyproject.toml` to use the explicit setting.
 
 ### Connected Vercel projects

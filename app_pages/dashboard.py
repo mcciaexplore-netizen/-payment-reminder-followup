@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as st
@@ -81,6 +82,7 @@ else:
 if attention:
     with st.expander(f"Reminders needing attention · {len(attention)}"):
         st.dataframe([{ "Invoice":r["invoice_key"],"Channel":r["channel"].title(),"Status":r["state"].replace("_"," ").title(),"Details":r["detail"]} for r in attention[:50]],hide_index=True)
-online=is_healthy(ctx["store"].path)
+cron=os.getenv("WORKSPACE_SCHEDULER_MODE")=="cron"
+online=is_healthy(ctx["store"].path,max_age=26*3600 if cron else 180,service="cron" if cron else "service")
 st.html('<div class="activity-line"><span class="activity-dot'+('' if online else ' offline')+'"></span>'+
         ('Background reminders are up to date.' if online else 'Background reminders are not reporting activity. Check the worker service.')+'</div>')

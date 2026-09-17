@@ -46,6 +46,8 @@ class Vault:
     def __init__(self, directory, key=None):
         key = key or os.getenv("WORKSPACE_MASTER_KEY")
         if not key:
+            if directory is None:
+                raise WorkspaceError("Hosted storage requires a permanent WORKSPACE_MASTER_KEY.")
             path=Path(directory)/"connector.key"
             path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
             try:

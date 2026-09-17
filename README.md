@@ -98,6 +98,10 @@ tokens appear in URLs. Do not publish those URLs in logs or analytics.
 
 ### Configuration
 
+For Vercel, configure [hosted SQLite](docs/hosted-sqlite.md) using
+`deploy/vercel.env.example`. Local SQLite files cannot persist on Vercel.
+The Docker/server setup continues to use the existing local SQLite database.
+
 Copy `.env.example` to `.env` and edit only the values you need. Restart services
 after configuration changes. All three services must use the same database and
 encryption key.
