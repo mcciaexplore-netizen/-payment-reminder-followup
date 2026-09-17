@@ -115,7 +115,7 @@ class Accounts:
             else:
                 count = fail["failures"]+1 if fail and now-datetime.fromisoformat(fail["since"]) < timedelta(minutes=15) else 1
                 since = fail["since"] if count > 1 else now.isoformat()
-                db.execute("INSERT OR REPLACE INTO ws_login_failures VALUES(?,?,?)", (email, count, since))
+                db.execute("INSERT INTO ws_login_failures VALUES(?,?,?) ON CONFLICT(email) DO UPDATE SET failures=excluded.failures,since=excluded.since", (email, count, since))
         if not valid:
             raise WorkspaceError("Email or password is incorrect.")
         return token
@@ -157,7 +157,7 @@ class Accounts:
             if not user:
                 db.execute("INSERT INTO ws_users VALUES(?,?,?)", (uid, email, hashed))
             # Existing members' roles must only be changed by the explicit role operation.
-            db.execute("INSERT OR IGNORE INTO ws_members VALUES(?,?,?)", (row["business_id"], uid, row["role"]))
+            db.execute("INSERT INTO ws_members VALUES(?,?,?) ON CONFLICT DO NOTHING", (row["business_id"], uid, row["role"]))
             db.execute("UPDATE ws_invites SET used=1 WHERE token=?", (digest(invite),))
             self.store.audit(db, row["business_id"], uid, "member.joined", {}, self.clock())
             return self._session(db, uid), row["business_id"]

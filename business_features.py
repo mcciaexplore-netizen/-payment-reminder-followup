@@ -70,7 +70,7 @@ class BusinessFeatures(Ledger):
         data=dict(display_name=display_name.strip(),reply_email=reply_email,terms=terms,tone=tone,default_currency=default_currency,upi_id=upi_id)
         with self.store.transaction() as db:
             actor=self.auth(db,"manage")
-            db.execute("INSERT OR REPLACE INTO ws_branding VALUES(?,?)",(self.business,encode(data)))
+            db.execute("INSERT INTO ws_branding VALUES(?,?) ON CONFLICT(business_id) DO UPDATE SET settings=excluded.settings",(self.business,encode(data)))
             # Branding changes invalidate unsent snapshots so old branding is not sent silently.
             db.execute("UPDATE ws_jobs SET state='cancelled',detail='Business branding changed; review a new draft' WHERE business_id=? AND state IN ('queued','awaiting_approval')",(self.business,))
             self.store.audit(db,self.business,actor,"branding.saved",data,self.clock())

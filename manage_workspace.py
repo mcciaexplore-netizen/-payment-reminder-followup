@@ -9,6 +9,8 @@ from workspace_storage import database_location, is_remote
 
 
 def backup(database,destination):
+    if is_remote(database):
+        raise ValueError("Use the hosted database provider's export/backup tools for a remote database.")
     database,destination=Path(database).resolve(),Path(destination).resolve()
     if not database.is_file():
         raise ValueError("Workspace database does not exist.")
@@ -38,7 +40,7 @@ def main():
     try:
         database=args.database or database_location()
         if is_remote(database):
-            raise ValueError("Use the hosted database provider's export/backup tools for remote SQLite.")
+            raise ValueError("Use the hosted database provider's export/backup tools for a remote database.")
         backup(database,args.output)
     except (ValueError,OSError,sqlite3.Error) as exc:
         parser.error(str(exc))

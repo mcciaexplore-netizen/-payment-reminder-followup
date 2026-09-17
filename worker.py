@@ -26,7 +26,7 @@ def main(argv=None):
     worker=Worker(store,Connectors(store,Vault(store.key_directory)))
     def record_progress(count):
         with store.transaction() as db:
-            db.execute("INSERT OR REPLACE INTO ws_worker VALUES('service',?,?)",
+            db.execute("INSERT INTO ws_worker VALUES('service',?,?) ON CONFLICT(id) DO UPDATE SET heartbeat=excluded.heartbeat,detail=excluded.detail",
                        (utcnow().isoformat(), f"Processed {count} reminders"))
     stopping = threading.Event()
     def request_stop(signum, frame):

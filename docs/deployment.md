@@ -1,7 +1,7 @@
 # Deploy the full workspace on one server
 
-This guide keeps SQLite on a persistent local disk. For Vercel with a hosted
-SQLite-compatible database, use [the hosted SQLite guide](hosted-sqlite.md).
+This guide keeps SQLite on a persistent local disk. For Vercel, use
+[Neon PostgreSQL](neon.md) or [hosted libSQL](hosted-sqlite.md).
 
 This setup runs the authenticated app, customer portal and provider callbacks
 behind one HTTPS address. A separate worker processes schedules when nobody has

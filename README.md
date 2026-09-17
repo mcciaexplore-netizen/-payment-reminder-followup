@@ -98,7 +98,7 @@ tokens appear in URLs. Do not publish those URLs in logs or analytics.
 
 ### Configuration
 
-For Vercel, configure [hosted SQLite](docs/hosted-sqlite.md) using
+For Vercel, configure [Neon PostgreSQL](docs/neon.md) (or [hosted libSQL](docs/hosted-sqlite.md)) using
 `deploy/vercel.env.example`. Local SQLite files cannot persist on Vercel.
 The Docker/server setup continues to use the existing local SQLite database.
 

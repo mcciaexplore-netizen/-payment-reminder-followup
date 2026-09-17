@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import io
 import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
@@ -23,13 +24,21 @@ from webhooks import create_app
 from workspace_store import WorkspaceError,WorkspaceStore
 
 
-@pytest.fixture(params=["sqlite", "libsql"])
+@pytest.fixture(params=["sqlite", "libsql"] + (["postgres"] if os.getenv("TEST_POSTGRES_URL") else []))
 def ws(tmp_path, request, monkeypatch):
     if request.param == "libsql":
         # Exercise the actual libSQL driver/row adapter, using an isolated local
         # database so money, authorization and concurrency tests need no secrets.
         from workspace_storage import RemoteConnection
         monkeypatch.setattr(WorkspaceStore, "connect", lambda self: RemoteConnection(str(self.path), ""))
+    elif request.param == "postgres":
+        from postgres_storage import PostgresConnection
+        postgres_url = request.getfixturevalue("postgres_server")
+        monkeypatch.setattr(WorkspaceStore, "connect", lambda self: PostgresConnection(postgres_url))
+        # This shared service fixture substitutes only the connection backend;
+        # retain the local store's file lifecycle. Real remote setup is covered
+        # separately in test_postgres_storage.py.
+        (tmp_path/"workspace.sqlite3").touch()
     store=WorkspaceStore(tmp_path/"workspace.sqlite3")
     instant=[datetime(2026,9,16,6,0,tzinfo=timezone.utc)]
     clock=lambda:instant[0]
@@ -58,7 +67,7 @@ def ws(tmp_path, request, monkeypatch):
     for kind in ("email","sms","whatsapp","payments","accounting"):
         gateway.save(token,business,kind,"https://gateway.example/api","x"*32,"y"*32)
     worker=Worker(store,gateway,clock,live_enabled=True)
-    return dict(store=store,instant=instant,clock=clock,accounts=accounts,token=token,business=business,ledger=ledger,
+    return dict(backend=request.param,store=store,instant=instant,clock=clock,accounts=accounts,token=token,business=business,ledger=ledger,
                 scheduling=scheduling,gateway=gateway,worker=worker,calls=calls,invoice=invoice,
                 features=BusinessFeatures(store,token,business,clock),client=client)
 
@@ -360,6 +369,10 @@ def test_forecast_reports_and_backup(ws,tmp_path):
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         assert "ws_invoices.json" in archive.namelist()
         assert not any("connector" in p or "session" in p or "user" in p for p in archive.namelist())
+    if ws["backend"] == "postgres":
+        with pytest.raises(ValueError, match="provider"):
+            backup(os.environ["TEST_POSTGRES_URL"],tmp_path/"backup.sqlite3")
+        return
     destination=backup(ws["store"].path,tmp_path/"backup.sqlite3")
     assert WorkspaceStore(destination).path.is_file()
     with pytest.raises(FileExistsError):

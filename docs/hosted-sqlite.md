@@ -1,5 +1,8 @@
 # Keep SQLite while using Vercel
 
+For Neon, which uses PostgreSQL, follow [the Neon deployment guide](neon.md).
+The libSQL connection settings below do not apply to Neon.
+
 Vercel does not provide the persistent local filesystem this app's SQLite file
 needs. A `/tmp` database would be temporary and separate across instances.
 [Vercel explains this storage limitation](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel).

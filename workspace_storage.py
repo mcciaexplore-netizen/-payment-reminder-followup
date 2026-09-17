@@ -1,4 +1,4 @@
-"""Local SQLite and remote libSQL storage, without temporary-file fallbacks."""
+"""Local SQLite, hosted libSQL and Neon/PostgreSQL storage."""
 import os
 from pathlib import Path
 import sqlite3
@@ -16,7 +16,14 @@ def is_remote(location):
     return isinstance(location, str) and "://" in location
 
 
+def is_postgres(location):
+    return isinstance(location, str) and location.lower().startswith(("postgres://", "postgresql://"))
+
+
 def validate_remote_url(url):
+    if is_postgres(url):
+        from postgres_storage import validate_postgres_url
+        return validate_postgres_url(url)
     try:
         parsed = urlsplit(url)
         if (parsed.scheme not in {"libsql", "https"} or not parsed.hostname
@@ -29,19 +36,20 @@ def validate_remote_url(url):
 
 
 def database_location():
-    url = os.getenv("WORKSPACE_DATABASE_URL", "").strip() or os.getenv("TURSO_DATABASE_URL", "").strip()
+    url = (os.getenv("WORKSPACE_DATABASE_URL", "").strip()
+           or os.getenv("DATABASE_URL", "").strip() or os.getenv("TURSO_DATABASE_URL", "").strip())
     if url:
         return validate_remote_url(url)
     if os.getenv("VERCEL") == "1":
-        raise StorageConfigurationError("Configure a hosted SQLite database for this Vercel deployment. Local database files are not persistent here.")
+        raise StorageConfigurationError("Configure a Neon/PostgreSQL or hosted SQLite database for this Vercel deployment. Local database files are not persistent here.")
     value = os.getenv("WORKSPACE_DATABASE_PATH", "").strip()
     path = Path(value).expanduser() if value else config.ROOT / ".data" / "workspace.sqlite3"
     return path if path.is_absolute() else config.ROOT / path
 
 
-def remote_credentials():
+def remote_credentials(url=None):
     token = os.getenv("WORKSPACE_DATABASE_TOKEN", "") or os.getenv("TURSO_AUTH_TOKEN", "")
-    if not token:
+    if not token and not is_postgres(url):
         raise StorageConfigurationError("Configure the hosted SQLite access token.")
     key = os.getenv("WORKSPACE_MASTER_KEY", "")
     try:
@@ -135,4 +143,9 @@ class RemoteConnection:
 
 
 def connect_remote(url):
-    return RemoteConnection(validate_remote_url(url), remote_credentials())
+    url = validate_remote_url(url)
+    if is_postgres(url):
+        from postgres_storage import PostgresConnection
+        remote_credentials(url)
+        return PostgresConnection(url)
+    return RemoteConnection(url, remote_credentials(url))

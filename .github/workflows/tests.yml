@@ -23,6 +23,32 @@ jobs:
       - run: python -m pip check
       - run: python -m pytest
 
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: workspace_tests
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d workspace_tests"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Synthetic credentials for this disposable CI service, never Neon secrets.
+      TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/workspace_tests?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest tests/test_workspace.py tests/test_postgres_storage.py tests/test_workspace_storage.py
+
   containers:
     runs-on: ubuntu-latest
     steps:
