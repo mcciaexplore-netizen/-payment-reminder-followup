@@ -6,11 +6,10 @@ import re
 import secrets
 from datetime import date
 from decimal import Decimal
-from zoneinfo import ZoneInfo
 
 from accounts import authorize
 from invoices import money, validate_records
-from workspace_store import WorkspaceError, encode, utcnow
+from workspace_store import WorkspaceError, business_today, encode, utcnow
 
 
 def minor(value):
@@ -57,7 +56,7 @@ def record_receipt(db, store, business, key, value, kind, reference, received_on
     if value <= 0:
         raise WorkspaceError("Receipt or credit must be greater than zero.")
     when = date.fromisoformat(str(received_on))
-    if when > now.date():
+    if when > business_today(db, business, now):
         raise WorkspaceError("A received payment cannot be dated in the future.")
     current = get_invoice(db,business,key)
     existing = db.execute("SELECT * FROM ws_receipts WHERE business_id=? AND reference=?", (business,reference)).fetchone()
@@ -82,6 +81,11 @@ class Ledger:
     def auth(self, db, permission="read"):
         return authorize(db,self.token,self.business,permission,self.clock())
 
+    def today(self):
+        with self.store.transaction() as db:
+            self.auth(db)
+            return business_today(db, self.business, self.clock())
+
     def import_records(self, records):
         valid = validate_records(records)
         with self.store.transaction() as db:
@@ -93,7 +97,7 @@ class Ledger:
                     customer_profiles.setdefault(email,json.loads(existing["profile"]))
             for inv in valid:
                 key = inv["invoice_no"].casefold()
-                old = db.execute("SELECT data FROM ws_invoices WHERE business_id=? AND invoice_key=?", (self.business,key)).fetchone()
+                old = db.execute("SELECT data,profile FROM ws_invoices WHERE business_id=? AND invoice_key=?", (self.business,key)).fetchone()
                 if old:
                     current = get_invoice(db,self.business,key)
                     if inv["amount"]!=current["amount"] and db.execute("SELECT 1 FROM ws_installments WHERE business_id=? AND invoice_key=?",(self.business,key)).fetchone():
@@ -105,7 +109,16 @@ class Ledger:
                     # Preserve the opening paid balance; local receipts remain separate.
                     inv["amount_paid"] = json.loads(old[0])["amount_paid"]
                     inv["outstanding_amount"] = amount(minor(inv["amount"])-minor(inv["amount_paid"]))
-                    db.execute("UPDATE ws_invoices SET data=?,revision=revision+1 WHERE business_id=? AND invoice_key=?", (encode(inv),self.business,key))
+                    profile = json.loads(old["profile"])
+                    if inv["email"].casefold() != current["email"].casefold():
+                        # Permissions and promises belong to the customer, not the invoice number.
+                        profile.update(phone="", consents=[], opted_out=False, language="en", promise_date="")
+                        previous = customer_profiles.get(inv["email"].casefold())
+                        if previous:
+                            profile.update({k: previous[k] for k in ("phone", "consents", "opted_out", "language")})
+                    db.execute("UPDATE ws_invoices SET data=?,profile=?,revision=revision+1 WHERE business_id=? AND invoice_key=?", (encode(inv),encode(profile),self.business,key))
+                    if inv["email"]:
+                        customer_profiles.setdefault(inv["email"].casefold(), profile)
                 else:
                     profile = {"phone":"", "consents":[], "opted_out":False, "language":"en",
                                "promise_date":"", "owner":"", "followup_note":""}
@@ -170,7 +183,8 @@ class Ledger:
             reference="reversal:"+receipt_id
             if db.execute("SELECT 1 FROM ws_receipts WHERE business_id=? AND reference=?",(self.business,reference)).fetchone():
                 raise WorkspaceError("This receipt was already reversed.")
-            db.execute("INSERT INTO ws_receipts VALUES(?,?,?,?,?,?,?,?,?)",(secrets.token_hex(16),self.business,row["invoice_key"],-row["amount"],"reversal",reference,self.clock().date().isoformat(),self.clock().isoformat(),actor))
+            now = self.clock()
+            db.execute("INSERT INTO ws_receipts VALUES(?,?,?,?,?,?,?,?,?)",(secrets.token_hex(16),self.business,row["invoice_key"],-row["amount"],"reversal",reference,business_today(db,self.business,now).isoformat(),now.isoformat(),actor))
             db.execute("UPDATE ws_invoices SET revision=revision+1 WHERE business_id=? AND invoice_key=?",(self.business,row["invoice_key"]))
             self.store.audit(db,self.business,actor,"receipt.reversed",{"receipt":receipt_id,"reason":reason},self.clock())
 
@@ -188,8 +202,7 @@ class Ledger:
         rows=self.invoices()
         with self.store.transaction() as db:
             self.auth(db)
-            tz=db.execute("SELECT timezone FROM ws_businesses WHERE id=?",(self.business,)).fetchone()[0]
-        today=self.clock().astimezone(ZoneInfo(tz)).date()
+            today=business_today(db,self.business,self.clock())
         currencies={}
         for inv in rows:
             if inv["status"]=="cancelled":

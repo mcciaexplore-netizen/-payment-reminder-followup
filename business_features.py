@@ -9,7 +9,7 @@ from pathlib import Path
 
 from accounts import authorize,digest
 from ledger import Ledger,amount,get_invoice,minor
-from workspace_store import WorkspaceError,encode,utcnow
+from workspace_store import WorkspaceError,business_today,encode,utcnow
 
 
 def installments_due(db,business,key,inv,today):
@@ -79,7 +79,7 @@ class BusinessFeatures(Ledger):
         """Planning estimates, grouped by currency. No model invents receipts."""
         with self.store.transaction() as db:
             self.auth(db)
-            today=self.clock().date()
+            today=business_today(db,self.business,self.clock())
             history=[]
             for receipt in db.execute("SELECT invoice_key,received_on FROM ws_receipts WHERE business_id=? AND kind='payment' AND amount>0 AND id NOT IN (SELECT substr(reference,10) FROM ws_receipts WHERE business_id=? AND kind='reversal')",(self.business,self.business)):
                 inv=get_invoice(db,self.business,receipt["invoice_key"])
@@ -158,12 +158,13 @@ def portal_action(store,token,action,promise_date="",now=None):
     now=now or utcnow()
     if action not in {"opt_out","promise"}:
         raise WorkspaceError("Unknown customer action.")
-    if action=="promise" and not now.date()<=date.fromisoformat(promise_date)<=now.date()+timedelta(days=90):
-        raise WorkspaceError("Choose a payment date within the next 90 days.")
     with store.transaction() as db:
         access=db.execute("SELECT * FROM ws_portals WHERE token=? AND revoked=0 AND expires>?",(digest(token),now.isoformat())).fetchone()
         if not access:
             raise WorkspaceError("This customer link is invalid or expired.")
+        today = business_today(db, access["business_id"], now)
+        if action=="promise" and not today<=date.fromisoformat(promise_date)<=today+timedelta(days=90):
+            raise WorkspaceError("Choose a payment date within the next 90 days.")
         for row in db.execute("SELECT * FROM ws_invoices WHERE business_id=?",(access["business_id"],)).fetchall():
             if json.loads(row["data"])["email"].casefold()==access["email"]:
                 profile=json.loads(row["profile"])

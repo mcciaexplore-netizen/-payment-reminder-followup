@@ -17,7 +17,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from accounts import authorize
 from ledger import get_invoice, minor, record_receipt
-from workspace_store import WorkspaceError, encode, utcnow
+from workspace_store import WorkspaceError, business_today, encode, utcnow
 
 KINDS = {"email","sms","whatsapp","payments","accounting"}
 
@@ -240,7 +240,7 @@ class Connectors:
                 if not isinstance(payment_id,str) or not 1<=len(payment_id)<=150:
                     raise WorkspaceError("A payment identifier is required.")
                 from ledger import amount
-                record_receipt(db,self.store,business,link["invoice_key"],amount(event["amount_minor"]),"payment","gateway:"+payment_id,now.date(),"payment-webhook",now)
+                record_receipt(db,self.store,business,link["invoice_key"],amount(event["amount_minor"]),"payment","gateway:"+payment_id,business_today(db,business,now),"payment-webhook",now)
                 if minor(get_invoice(db,business,link["invoice_key"])["outstanding_amount"])==0:
                     db.execute("UPDATE ws_links SET state='paid' WHERE id=?",(link["id"],))
             elif event.get("type")=="message.status" and kind in {"email","sms","whatsapp"}:

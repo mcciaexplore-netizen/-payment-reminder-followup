@@ -14,3 +14,5 @@ __pycache__/
 reminders_log.csv
 reminder_history.csv
 tmp/
+backups/
+connector-key-backup

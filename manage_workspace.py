@@ -17,10 +17,15 @@ def backup(database,destination):
     # Reserve a new path and refuse to overwrite an existing backup.
     fd=os.open(destination,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
     os.close(fd)
-    with closing(sqlite3.connect(database)) as source,closing(sqlite3.connect(destination)) as target:
-        source.backup(target)
-        if target.execute("PRAGMA integrity_check").fetchone()[0]!="ok":
-            raise ValueError("Backup integrity check failed.")
+    try:
+        with closing(sqlite3.connect(database)) as source,closing(sqlite3.connect(destination)) as target:
+            source.backup(target)
+            if target.execute("PRAGMA integrity_check").fetchone()[0]!="ok":
+                raise ValueError("Backup integrity check failed.")
+    except BaseException:
+        # Only remove the new file reserved by this invocation, never a prior backup.
+        destination.unlink(missing_ok=True)
+        raise
     return destination
 
 

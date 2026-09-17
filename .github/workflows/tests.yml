@@ -22,3 +22,56 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pip check
       - run: python -m pytest
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure private test deployment
+        run: |
+          cp deploy/server.env.example .env.server
+          docker compose config --quiet
+          docker compose --profile public config --quiet
+      - name: Build and start the full workspace
+        run: docker compose up -d --build --wait --wait-timeout 180 web worker
+      - name: Check HTTP routes, worker and persistent storage
+        run: |
+          docker compose exec -T worker python worker.py --once
+          docker compose exec -T web python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import sqlite3
+          from urllib.request import urlopen
+
+          assert urlopen('http://127.0.0.1:8501/').status == 200
+          assert json.load(urlopen('http://127.0.0.1:8501/health')) == {'status': 'ok'}
+          data = Path('/app/.data')
+          with sqlite3.connect(data / 'workspace.sqlite3') as db:
+              assert db.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
+              assert db.execute('SELECT count(*) FROM ws_worker').fetchone()[0] == 3
+              db.execute('CREATE TABLE deployment_probe (value TEXT)')
+              db.execute("INSERT INTO deployment_probe VALUES ('retained')")
+          (data / 'deployment_probe_key_hash').write_text(hashlib.sha256((data / 'connector.key').read_bytes()).hexdigest())
+          PY
+      - name: Verify data and key survive container replacement
+        run: |
+          docker compose up -d --force-recreate --wait --wait-timeout 180 web worker
+          docker compose exec -T web python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import sqlite3
+
+          data = Path('/app/.data')
+          with sqlite3.connect(data / 'workspace.sqlite3') as db:
+              assert db.execute('SELECT value FROM deployment_probe').fetchone()[0] == 'retained'
+          assert (data / 'deployment_probe_key_hash').read_text() == hashlib.sha256((data / 'connector.key').read_bytes()).hexdigest()
+          PY
+      - name: Validate HTTPS proxy configuration
+        run: docker compose --profile public run --rm --no-deps https caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Show service diagnostics
+        if: failure()
+        run: docker compose logs --tail 100 web worker
+      - name: Clean up ephemeral CI containers and volumes
+        if: always()
+        run: docker compose --profile public down -v

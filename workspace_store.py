@@ -2,6 +2,7 @@
 import json
 from contextlib import closing
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from reminders import ReminderStore
 
 
@@ -15,6 +16,13 @@ def encode(value):
 
 class WorkspaceError(ValueError):
     pass
+
+
+def business_today(db, business, now=None):
+    row = db.execute("SELECT timezone FROM ws_businesses WHERE id=?", (business,)).fetchone()
+    if row is None:
+        raise WorkspaceError("Business not found.")
+    return (now or utcnow()).astimezone(ZoneInfo(row[0])).date()
 
 
 class WorkspaceStore(ReminderStore):

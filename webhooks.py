@@ -61,7 +61,7 @@ def create_app(connectors=None):
                     if len(raw)>4096:
                         return HTMLResponse("Request too large.",status_code=413,headers=headers)
                 form=parse_qs(raw.decode())
-                if not hmac.compare_digest(form.get("csrf",[""])[0],digest("portal-action:"+token)):
+                if not hmac.compare_digest(form.get("csrf",[""])[0].encode("utf-8"),digest("portal-action:"+token).encode("ascii")):
                     raise WorkspaceError("Invalid form.")
                 await run_in_threadpool(portal_action,store,token,form.get("action",[""])[0],form.get("promise_date",[""])[0])
                 return RedirectResponse(request.url.path,status_code=303,headers=headers)

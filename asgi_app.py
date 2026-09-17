@@ -1,0 +1,17 @@
+"""ASGI entry point; keep the Streamlit UI script separate from server imports.
+
+This exports a real web application for ASGI hosts. Deployment still needs
+durable workspace storage and a separately supervised reminder worker.
+"""
+from pathlib import Path
+
+import streamlit as st
+from webhooks import create_app
+
+
+# Serve private customer links and signed callbacks on the same HTTPS origin.
+# Creating the routes does not open the workspace database.
+app = st.App(
+    Path(__file__).resolve().with_name("app.py"),
+    routes=create_app().routes,
+)

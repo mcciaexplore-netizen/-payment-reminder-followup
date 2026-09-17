@@ -377,6 +377,99 @@ def test_contact_optout_survives_new_invoice_import(ws):
         ws["scheduling"].draft("INV-2")
 
 
+def test_customer_change_does_not_transfer_contact_permission(ws):
+    ws["ledger"].update_collection("INV-1", phone="+919876543210",
+        consents=["email", "sms"], promise_date="2026-09-20")
+    ws["ledger"].import_records([{**ws["invoice"], "email": "new@example.com"}])
+    invoice = ws["ledger"].invoices()[0]
+    assert invoice["phone"] == ""
+    assert invoice["consents"] == []
+    assert invoice["promise_date"] == ""
+    with pytest.raises(WorkspaceError, match="permitted"):
+        ws["scheduling"].draft("INV-1")
+
+
+def test_customer_change_honors_existing_target_optout(ws):
+    ws["ledger"].import_records([{**ws["invoice"], "invoice_no": "INV-2", "email": "new@example.com"}])
+    ws["ledger"].update_collection("INV-2", phone="+919000000001", consents=["email"], opted_out=True)
+    ws["ledger"].import_records([{**ws["invoice"], "email": "new@example.com"}])
+    changed = next(row for row in ws["ledger"].invoices() if row["invoice_no"] == "INV-1")
+    assert changed["opted_out"]
+    assert changed["phone"] == "+919000000001"
+
+
+@pytest.mark.parametrize("zone,instant,local_date", [
+    ("Asia/Kolkata", "2026-09-16T19:00:00+00:00", "2026-09-17"),
+    ("America/Los_Angeles", "2026-09-16T02:00:00+00:00", "2026-09-15"),
+])
+def test_payment_and_portal_dates_follow_business_timezone(ws, zone, instant, local_date):
+    from datetime import date
+
+    with ws["store"].transaction() as db:
+        db.execute("UPDATE ws_businesses SET timezone=? WHERE id=?", (zone, ws["business"]))
+    ws["instant"][0] = datetime.fromisoformat(instant)
+    ws["token"] = ws["accounts"].login("owner@example.com", "a long test password")
+    ws["ledger"].token = ws["features"].token = ws["token"]
+    today = date.fromisoformat(local_date)
+    assert ws["features"].forecast()[0]["expected_date"] == local_date
+    receipt = ws["ledger"].receipt("INV-1", "100", "payment", "local-payment", local_date)
+    with pytest.raises(WorkspaceError, match="future"):
+        ws["ledger"].receipt("INV-1", "100", "payment", "future-payment", (today + timedelta(days=1)).isoformat())
+    ws["ledger"].reverse_receipt(receipt, "Customer bank transfer was reversed")
+    reversal = next(r for r in ws["ledger"].receipts() if r["kind"] == "reversal")
+    assert reversal["received_on"] == local_date
+    token = ws["features"].create_portal("customer@example.com")
+    portal_action(ws["store"], token, "promise", local_date, ws["clock"]())
+    with pytest.raises(WorkspaceError, match="90 days"):
+        portal_action(ws["store"], token, "promise", (today - timedelta(days=1)).isoformat(), ws["clock"]())
+    ws["gateway"].create_link(ws["token"], ws["business"], "INV-1")
+    link = ws["gateway"].links(ws["token"], ws["business"])[0]
+    webhook(ws, {"event_id": "local-event", "type": "payment.received", "link_id": link["provider_id"],
+        "payment_id": "local-gateway-payment", "amount_minor": 1000, "currency": "INR"})
+    received = next(r for r in ws["ledger"].receipts() if r["reference"] == "gateway:local-gateway-payment")
+    assert received["received_on"] == local_date
+
+
+def test_portal_rejects_non_ascii_csrf_without_server_error(ws, monkeypatch):
+    import config
+    monkeypatch.setattr(config, "IS_DEMO", False)
+    client = TestClient(create_app(ws["gateway"]))
+    response = client.post("/portal/invalid-token", data={"action": "opt_out", "csrf": "invalid-\u00e9"})
+    assert response.status_code == 400
+
+
+def test_failed_backup_does_not_leave_an_apparently_usable_snapshot(tmp_path):
+    import sqlite3
+    source = tmp_path / "corrupt.sqlite3"
+    source.write_bytes(b"this is not a sqlite database")
+    destination = tmp_path / "backup.sqlite3"
+    with pytest.raises(sqlite3.DatabaseError):
+        backup(source, destination)
+    assert not destination.exists()
+
+
+def test_worker_finishes_current_send_before_honoring_shutdown(ws):
+    from threading import Event
+    stopped = Event()
+    ws["ledger"].import_records([{**ws["invoice"], "invoice_no": "INV-2"}])
+    jobs = []
+    for key in ("INV-1", "INV-2"):
+        draft = ws["scheduling"].draft(key)
+        jobs.append(ws["scheduling"].approve_manual(draft, draft["subject"], draft["body"], "live"))
+    def respond(request):
+        stopped.set()  # Simulate a termination request while the provider responds.
+        request_id = json.loads(request.content)["request_id"]
+        return httpx.Response(200, json={"request_id": request_id, "provider_id": "accepted-message", "status": "submitted"})
+    ws["gateway"].client = httpx.Client(transport=httpx.MockTransport(respond))
+    progress = []
+    results = ws["worker"].tick(stop_requested=stopped.is_set, on_progress=progress.append)
+    assert len(results) == 1 and results[0]["state"] == "submitted"
+    assert progress and all(count == 1 for count in progress)
+    with ws["store"].transaction() as db:
+        states = [r[0] for r in db.execute("SELECT state FROM ws_jobs")]
+    assert sorted(states) == ["queued", "submitted"]
+
+
 def test_concurrent_receipts_cannot_overpay(ws):
     def record(reference):
         try:

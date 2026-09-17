@@ -5,6 +5,7 @@ from ledger import amount,csv_bytes
 from workspace_ui import context,invoice_picker,require_role,notify
 
 ctx=context()
+today=ctx["ledger"].today()
 receipts=ctx["ledger"].receipts()
 invoices=ctx["ledger"].invoices()
 currencies={r["invoice_no"].casefold():r["currency"] for r in invoices}
@@ -31,7 +32,7 @@ with st.form("receipt_form"):
         reference=st.text_input("Unique receipt or credit reference")
     with right:
         kind=st.selectbox("Type",["payment","credit"])
-        received=st.date_input("Date received",value=date.today(),max_value=date.today())
+        received=st.date_input("Date received",value=today,max_value=today)
     record=st.form_submit_button("Record receipt",type="primary")
 if record:
     ctx["ledger"].receipt(inv["invoice_no"],value,kind,reference,received.isoformat())

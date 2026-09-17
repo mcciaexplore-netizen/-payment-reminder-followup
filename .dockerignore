@@ -12,4 +12,6 @@ __pycache__
 .streamlit/secrets.toml
 tmp
 output
+backups
+connector-key-backup
 tests

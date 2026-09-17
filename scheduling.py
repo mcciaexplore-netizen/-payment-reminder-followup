@@ -321,14 +321,24 @@ class Worker:
             self.store.audit(db,row["business_id"],"worker","reminder."+state,{"id":row["id"],"channel":row["channel"]},self.clock())
         return {"id":row["id"],"state":state,"detail":detail}
 
-    def tick(self,limit=100,business=None):
+    def _heartbeat(self, count):
+        with self.store.transaction() as db:
+            db.execute("INSERT OR REPLACE INTO ws_worker VALUES('sender',?,?)",(self.clock().isoformat(),f"Processed {count} reminders"))
+
+    def tick(self,limit=100,business=None,stop_requested=None,on_progress=None):
         self.plan(business)
         results=[]
         for _ in range(limit):
+            if stop_requested and stop_requested():
+                break
             result=self.run_one(business=business)
             if result is None:
                 break
             results.append(result)
-        with self.store.transaction() as db:
-            db.execute("INSERT OR REPLACE INTO ws_worker VALUES('sender',?,?)",(self.clock().isoformat(),f"Processed {len(results)} reminders"))
+            self._heartbeat(len(results))
+            if on_progress:
+                on_progress(len(results))
+        self._heartbeat(len(results))
+        if on_progress:
+            on_progress(len(results))
         return results

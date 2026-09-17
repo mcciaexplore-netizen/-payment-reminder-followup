@@ -1,4 +1,4 @@
-from datetime import datetime,timezone,timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as st
@@ -6,6 +6,7 @@ import streamlit as st
 from ledger import minor
 from ui_design import invoice_table,money_display,status_list
 from workspace_ui import context
+from worker_health import is_healthy
 
 
 ctx=context()
@@ -80,8 +81,6 @@ else:
 if attention:
     with st.expander(f"Reminders needing attention · {len(attention)}"):
         st.dataframe([{ "Invoice":r["invoice_key"],"Channel":r["channel"].title(),"Status":r["state"].replace("_"," ").title(),"Details":r["detail"]} for r in attention[:50]],hide_index=True)
-with ctx["store"].transaction() as db:
-    heartbeat=db.execute("SELECT heartbeat FROM ws_worker WHERE id='scheduler'").fetchone()
-online=bool(heartbeat and datetime.now(timezone.utc)-datetime.fromisoformat(heartbeat[0])<timedelta(minutes=2))
+online=is_healthy(ctx["store"].path)
 st.html('<div class="activity-line"><span class="activity-dot'+('' if online else ' offline')+'"></span>'+
-        ('Background scheduler is up to date.' if online else 'Background scheduler is not reporting activity. Check the worker service.')+'</div>')
+        ('Background reminders are up to date.' if online else 'Background reminders are not reporting activity. Check the worker service.')+'</div>')

@@ -80,6 +80,10 @@ prepares the latest reached stage per invoice, and processes queued approvals.
 Closing its terminal stops background processing. It is not automatically
 installed as an operating-system startup service.
 
+`worker_health.py` checks the separate worker's recent progress without changing
+the database. Browser actions do not refresh this service check. The worker
+handles shutdown signals between reminders and finishes its current submission.
+
 ### Customer access and webhooks
 
 ```powershell
@@ -124,6 +128,8 @@ There is no exchange-rate conversion, and currencies are never summed together.
 Status is Unpaid, Partially Paid, Paid/Cleared, Cancelled, Disputed or On Hold.
 Open invoices require an email address, even when another reminder channel is used.
 The default import currency comes from business settings.
+Payment dates, reversals, forecasts and customer promises use the business
+timezone, regardless of the server's timezone.
 
 Imported Amount Paid represents an opening **settled balance**. Later receipts and
 credits reduce outstanding amounts. The displayed `amount_paid` is the settled
@@ -148,6 +154,9 @@ They are planning estimates, not payment guarantees.
   Customer preferences are shared across invoices with the same email in a
   business. A portal opt-out stops all channels; channel callbacks remove that
   channel's permission.
+- Changing a customer's email on an existing invoice clears the previous
+  customer's phone, permissions and payment promise. Known contact preferences
+  and opt-outs for the new email are retained.
 - Manual approvals are single use and expire after 30 minutes. The queue binds
   the invoice snapshot, recipient, mode and edited content. An invoice/profile
   change invalidates queued work; review a fresh draft.
@@ -171,6 +180,11 @@ They are planning estimates, not payment guarantees.
   opt-outs received after an external request starts cannot recall that request.
 
 ## Backups and deployment boundaries
+
+For the full app, use the [persistent-server deployment guide](docs/deployment.md).
+`compose.yaml` runs the workspace and background worker with shared durable
+storage; its optional public profile adds HTTPS. `Dockerfile.workspace` is the
+full application image, while the original `Dockerfile` runs the legacy demo.
 
 The app is suitable for local evaluation and a controlled pilot. Default services
 bind to localhost. Before exposing it, initialize the owner account locally, use
@@ -207,7 +221,7 @@ Legacy invoice/history data is preserved. It is not automatically assigned to a
 new account or silently merged with a business. Import a reviewed invoice export
 into the new workspace and inspect recent legacy sends before activating new
 live policies, because the two databases do not share cooldown history. The
-included Docker configuration remains a preview-only demonstration.
+original `Dockerfile` remains a preview-only demonstration.
 
 ## Verification and code map
 
@@ -219,8 +233,8 @@ included Docker configuration remains a preview-only demonstration.
 Tests cover legacy workflows and the new services, account isolation, roles,
 receipts, payment events, opt-outs, schedules, concurrency, quiet hours, account
 revocation, customer access, backups and browser page flows. Network services are
-simulated. The CI workflow is ready to run after the project is placed in a Git
-repository; this downloaded working copy does not contain Git history.
+simulated. The CI workflow runs on pushes and pull requests, including a Linux
+container check for the persistent-server deployment.
 
 | Files | Responsibility |
 | --- | --- |
@@ -229,6 +243,7 @@ repository; this downloaded working copy does not contain Git history.
 | `ledger.py`, `invoices.py` | Imports, validated money/date rules, receipts and invoice states. |
 | `scheduling.py`, `worker.py` | Templates, policy planning, approvals, claims, submission and recovery. |
 | `connectors.py`, `webhooks.py` | Encrypted gateway configuration, outbound contract, verified events and customer HTTP pages. |
+| `asgi_app.py`, `Dockerfile.workspace`, `compose.yaml`, `deploy/` | Combined web entry point, full-app server image, persistent worker/storage and optional HTTPS. |
 | `business_features.py`, `manage_workspace.py` | Branding, installments, forecasts, customer access, archives and backups. |
 | `legacy_app.py`, `agent.py`, `reminders.py`, `drafting.py` | Preserved local Gmail workflow and optional AI wording. |
 
