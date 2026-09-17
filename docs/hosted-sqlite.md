@@ -4,19 +4,49 @@ Vercel does not provide the persistent local filesystem this app's SQLite file
 needs. A `/tmp` database would be temporary and separate across instances.
 [Vercel explains this storage limitation](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel).
 
-The app now supports a hosted **libSQL** database, a SQLite fork, using the
-official `libsql` Python driver. It connects directly to the remote database;
+The app supports **SQLite Cloud** through its official `sqlitecloud` Python
+driver, and **libSQL** (a SQLite fork) through the official `libsql` driver.
+It connects directly to the remote database;
 it never creates a replica, temporary payment database, or backup of your data
 inside a function. The local and Docker paths still use Python's `sqlite3`.
-See [the driver's remote connection guide](https://docs.turso.tech/sdk/python/quickstart#remote-libsql-database-libsql).
+See [SQLite Cloud's Python SDK](https://github.com/sqlitecloud/sqlitecloud-py).
+
+## SQLite Cloud project
+
+1. In the SQLite Cloud dashboard, select or create a project for payment
+   follow-up. Review its plan before creating it; a second project may require
+   a paid plan if the account's free-project allowance is already used.
+2. Create a dedicated database named `payment_reminder`. Do not select the
+   authentication database, sample database or another app's database.
+3. Obtain the project's SQLite Cloud connection hostname and a server API key
+   authorized for this database. The app needs to create its tables and indexes
+   on first startup and read/write them afterwards. Keep the key server-side.
+4. Split the connection string into these two Vercel environment variables:
+
+   ```dotenv
+   WORKSPACE_DATABASE_URL=sqlitecloud://YOUR-HOST.sqlite.cloud:8860/payment_reminder
+   WORKSPACE_DATABASE_TOKEN=YOUR_API_KEY
+   ```
+
+   Replace the placeholders. A URL beginning `https://dashboard.sqlitecloud.io/`
+   is the management website, not a database connection. If the provider's
+   connection string ends in `?apikey=...`, put that key in the token variable
+   and remove the query from the URL. Database names may contain letters,
+   digits, underscores, dots and hyphens (up to 128 characters).
+
+Connections use TLS with certificate verification and 10-second socket timeouts.
+The adapter does not accept URL flags to disable TLS, create an in-memory
+database or weaken consistency. It preserves the app's explicit transactions
+and does not retry failed writes. It sends `COMMIT` and `ROLLBACK` explicitly
+because SDK 0.0.84's helper methods can suppress operational errors. SQL batches
+use `execute()` because this SDK does not implement `executescript()`.
 
 ## Configure the database and secrets
 
-1. Create a **libSQL** database with a host such as Turso. Choose the libSQL
-   engine, not the newer Turso engine, which requires a different driver.
-2. Obtain its database URL and access token. In the Vercel project's settings,
-   add the variables listed in `deploy/vercel.env.example`. Use separate
-   databases and credentials for Preview and Production.
+1. Prepare the SQLite Cloud database above, or use the libSQL alternative below.
+2. In the Vercel project's settings, add the variables listed in
+   `deploy/vercel.env.example`. Use separate databases and credentials for
+   Preview and Production.
 3. Set `WORKSPACE_MASTER_KEY` to a permanent Fernet encryption key. Keep a
    protected backup. If migrating existing data, reuse its `.data/connector.key`
    (or existing environment key); changing the key prevents decrypting saved
@@ -29,8 +59,6 @@ See [the driver's remote connection guide](https://docs.turso.tech/sdk/python/qu
    remain disabled in `vercel.json`; explicitly deploy, or deliberately enable
    automatic deployments after setting the database and secrets.
 
-`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are accepted as aliases for the two
-workspace database settings. Explicit `WORKSPACE_DATABASE_*` values take priority.
 The master key is required for remote storage so separate instances always use
 the same encryption key. There is no fallback to a local file when a URL or token
 is invalid or the hosted database is unavailable.
@@ -38,6 +66,15 @@ is invalid or the hosted database is unavailable.
 For a fresh database, open the site and enter the private setup code when
 creating the first owner. Other visitors cannot claim the initial owner account
 without that code. Once created, use the normal email/password login.
+
+### libSQL alternative
+
+An existing libSQL deployment remains supported. Use a libSQL-engine database
+(not the newer Turso engine) with `WORKSPACE_DATABASE_URL=libsql://YOUR-HOST`
+and its access token in `WORKSPACE_DATABASE_TOKEN`.
+`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` remain aliases for libSQL; a Turso
+token is never used for a SQLite Cloud URL. Explicit workspace settings take
+priority. See [the libSQL remote connection guide](https://docs.turso.tech/sdk/python/quickstart#remote-libsql-database-libsql).
 
 ## Background reminders
 
@@ -73,9 +110,11 @@ audit records and uncertain reminders before enabling live sends.
 For hosted backups use the database provider's export and recovery facilities;
 the local backup command does not back up a remote database.
 
-Local tests exercise the real libSQL driver for transactions, row access,
-permissions, payments and concurrent reminder claims. The network boundary is
-simulated in configuration tests. A real hosted database still needs connection,
+Local tests exercise SQLite, the real libSQL driver, and the SQLite Cloud
+DB-API with a simulated server for transactions, row access, permissions,
+payments and concurrent reminder claims. SQLite Cloud tests replace the
+transport, not its SDK cursor/batch/result handling; they are not live network
+tests. A real hosted database still needs connection,
 login, payment, portal and scheduled-run verification with fictional records
 before accepting real data. No database account or deployment is provisioned
 by adding these files.

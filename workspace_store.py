@@ -31,7 +31,7 @@ class WorkspaceStore(ReminderStore):
         self.remote = is_remote(path)
         if self.remote:
             self.path = validate_remote_url(path)
-            remote_credentials()
+            remote_credentials(self.path)
             self._initialize_schema()
         else:
             super().__init__(path)
