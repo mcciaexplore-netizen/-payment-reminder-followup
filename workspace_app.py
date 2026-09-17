@@ -31,9 +31,12 @@ def main():
         access=st.Page(lambda:render_access(accounts,store),title="Sign in",url_path="sign-in",default=True)
         st.navigation([access],position="hidden").run()
         return
+    # Native desktop locking also removes Streamlit's collapse keyboard behavior.
+    st.set_page_config(initial_sidebar_state="locked")
     ids=[b["id"] for b in companies]
     previous=st.session_state.ws_business
-    selected=st.sidebar.selectbox("Business",ids,index=ids.index(previous) if previous in ids else 0,
+    sidebar=st.sidebar.container(key="workspace_sidebar",gap="small")
+    selected=sidebar.selectbox("Business",ids,index=ids.index(previous) if previous in ids else 0,
         format_func=lambda value:next(b["name"] for b in companies if b["id"]==value))
     if previous!=selected:
         # Clear reviewed content and temporary data when switching tenants.
@@ -42,13 +45,13 @@ def main():
                 del st.session_state[key]
         st.session_state.ws_business=selected
     company=next(b for b in companies if b["id"]==selected)
-    st.sidebar.caption(f"{company['role'].capitalize()} · {company['timezone']}")
+    sidebar.caption(f"{company['role'].capitalize()} · {company['timezone']}")
     with store.transaction() as db:
         sample_data=db.execute("SELECT 1 FROM ws_audit WHERE business_id=? AND action=?",(selected,SEED_ACTION)).fetchone()
     if sample_data:
-        st.sidebar.info("Demo workspace · Fictional sample data")
-    st.sidebar.caption("Live messaging enabled" if os.getenv("WORKSPACE_LIVE_ENABLED","").lower()=="true" else "Preview mode · No live messages")
-    if st.sidebar.button("Sign out",icon=":material/logout:",width="stretch"):
+        sidebar.caption("Demo workspace · Sample data")
+    sidebar.caption("Live messaging enabled" if os.getenv("WORKSPACE_LIVE_ENABLED","").lower()=="true" else "Preview mode · No live messages")
+    if sidebar.button("Sign out",icon=":material/logout:",width="stretch"):
         accounts.logout(st.session_state.ws_token)
         st.session_state.clear()
         st.rerun()
@@ -63,7 +66,7 @@ def main():
     ]
     if company["role"]=="owner":
         pages.append(st.Page("app_pages/team.py",title="Team & integrations",icon=":material/group:"))
-    page=st.navigation({"Collections":pages[:4],"Manage":pages[4:]})
+    page=st.navigation({"Collections":pages[:4],"Manage":pages[4:]},expanded=True)
     page_heading(page.title,company["name"],datetime.now(ZoneInfo(company["timezone"])).date())
     if st.session_state.get("ws_notice"):
         st.success(st.session_state.pop("ws_notice"))

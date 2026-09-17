@@ -8,13 +8,48 @@ h2, h3 { letter-spacing: -.01em; }
 p { line-height: 1.6; }
 [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p { color: var(--mccia-muted); font-size: .9rem; line-height: 1.5; }
 [data-testid="stWidgetLabel"] p { color: var(--mccia-ink); font-size: 1rem; font-weight: 600; }
-/* Streamlit owns sidebar width and collapse offsets; fixed bounds leave a blank rail. */
-[data-testid="stSidebar"][aria-expanded="true"] { border-right: 1px solid var(--mccia-line); }
-[data-testid="stSidebarHeader"] { padding-top: 1.5rem; padding-bottom: 1.1rem; }
-[data-testid="stSidebarNav"] a { border-radius: 7px; padding-top: .45rem; padding-bottom: .45rem; }
-[data-testid="stSidebarNav"] a[aria-current="page"] { background: #eaf3fa; color: #125b90; font-weight: 700; }
+/* Authenticated workspace only: keep one reserved rail, even below Streamlit's
+   mobile breakpoint. The sign-in and legacy demo layouts retain their behavior. */
+body:has(.st-key-workspace_sidebar) { --workspace-sidebar-width: 16rem; }
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebar"] {
+  position: fixed !important; inset: 0 auto 0 0;
+  width: var(--workspace-sidebar-width) !important;
+  min-width: var(--workspace-sidebar-width) !important;
+  max-width: var(--workspace-sidebar-width) !important;
+  height: 100dvh !important; margin-left: 0 !important;
+  transform: none !important; visibility: visible !important;
+  border-right: 1px solid var(--mccia-line); box-shadow: none;
+  transition: none !important;
+}
+body:has(.st-key-workspace_sidebar) [data-testid="stMain"] {
+  margin-left: var(--workspace-sidebar-width);
+  width: calc(100% - var(--workspace-sidebar-width)); min-width: 0;
+}
+body:has(.st-key-workspace_sidebar) [data-testid="stHeader"] { left: var(--workspace-sidebar-width); width: auto; }
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebarCollapseButton"],
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebarCollapsedControl"],
+body:has(.st-key-workspace_sidebar) [data-testid="stExpandSidebarButton"],
+body:has(.st-key-workspace_sidebar) [data-testid="stHeader"] [data-testid="stLogoLink"],
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebar"] > div:last-child:not([data-testid]) { display: none !important; }
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebarContent"] {
+  display: flex; flex-direction: column; height: 100%; padding: 0; overflow-y: auto;
+  overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin;
+}
+[data-testid="stSidebarHeader"] { padding: 1.5rem 1.25rem 1.1rem; flex-shrink: 0; }
+[data-testid="stSidebarNav"] { flex-shrink: 0; }
+[data-testid="stSidebarNavItems"] { padding: 0 .75rem; }
+[data-testid="stSidebarNavLinkContainer"] { padding: .1rem 0; }
+[data-testid="stSidebarNav"] a { border-radius: 7px; min-height: 2.5rem; padding: .5rem .65rem; }
+[data-testid="stSidebarNav"] a p { font-size: .95rem; line-height: 1.35; white-space: normal; }
+[data-testid="stSidebarNav"] a:hover { background: #f2f6f9; }
+[data-testid="stSidebarNav"] a[aria-current="page"] { background: #eaf3fa; color: #125b90; font-weight: 700; box-shadow: inset 3px 0 #146caa; }
+[data-testid="stSidebarNav"] a[aria-current="page"] [data-testid="stIconMaterial"] { color: #125b90; }
+[data-testid="stNavSectionHeader"] { margin: 0; padding: .65rem .65rem .3rem; }
+[data-testid="stNavSectionHeader"] p { color: var(--mccia-muted); font-size: .78rem; font-weight: 600; letter-spacing: .03em; }
 [data-testid="stSidebarNavSeparator"] { border-color: var(--mccia-line); }
-[data-testid="stSidebarUserContent"] { padding-top: 1.1rem; }
+body:has(.st-key-workspace_sidebar) [data-testid="stSidebarUserContent"] { margin-top: auto; padding: 1.1rem 1.25rem 1.25rem; }
+.st-key-workspace_sidebar [data-testid="stCaptionContainer"] p { font-size: .8rem; line-height: 1.4; }
+.st-key-workspace_sidebar [data-testid="stButton"] { margin-top: .35rem; }
 [data-testid="stSidebar"] [data-testid="stAlert"] { font-size: .875rem; padding: .75rem; }
 /* Native bordered metrics already provide inner padding. */
 [data-testid="stMetric"] { padding: 0; border: 1px solid var(--mccia-line); border-radius: 10px; background: #fff; }
@@ -22,7 +57,9 @@ p { line-height: 1.6; }
 [data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; letter-spacing: -.015em; font-weight: 700; color: var(--mccia-ink); }
 [data-testid="stForm"] { padding: 1.5rem; border-color: var(--mccia-line); border-radius: 12px; }
 [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea { font-size: 1rem; }
-[data-testid="stButton"] button, [data-testid="stFormSubmitButton"] button, [data-testid="stDownloadButton"] button { min-height: 2.6rem; font-weight: 600; transition: background-color 140ms ease, border-color 140ms ease; }
+/* Match the official site's .btn typography without changing icon fonts. */
+[data-testid="stButton"] button, [data-testid="stFormSubmitButton"] button, [data-testid="stDownloadButton"] button, [data-testid="stLinkButton"] a { min-height: 2.6rem; font-family: "Segoe", sans-serif; font-weight: 500; transition: background-color 140ms ease, border-color 140ms ease; }
+:is([data-testid="stButton"], [data-testid="stFormSubmitButton"], [data-testid="stDownloadButton"], [data-testid="stLinkButton"]) :is(p, [data-testid="stMarkdownContainer"]) { font-family: inherit; font-weight: inherit; }
 button:focus-visible, a:focus-visible { outline: 3px solid #146caa; outline-offset: 3px; }
 [data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
 [data-testid="stExpander"] { border-color: var(--mccia-line); border-radius: 10px; }
@@ -42,6 +79,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #146caa; outline-offs
 .st-key-summary_metrics { margin-bottom: .4rem; }
 .st-key-auth_shell { max-width: 1160px; margin: 1.3rem auto 0; }
 body:has(.st-key-auth_shell) [data-testid="stSidebar"],
+body:has(.st-key-auth_shell) [data-testid="stExpandSidebarButton"],
 body:has(.st-key-auth_shell) [data-testid="stSidebarCollapsedControl"] { display: none; }
 .st-key-auth_story { padding: 1.5rem .5rem 1.5rem 0; }
 .st-key-auth_story h1 { font-size: clamp(2.6rem, 4vw, 3.4rem) !important; max-width: 12ch; line-height: 1.08; padding-top: 1rem; }
@@ -64,6 +102,10 @@ body:has(.st-key-auth_shell) [data-testid="stSidebarCollapsedControl"] { display
   .st-key-summary_metrics [data-testid="stMetric"] { height: 100%; }
 }
 @media (max-width: 900px) {
+  body:has(.st-key-workspace_sidebar) { --workspace-sidebar-width: 13rem; }
+  [data-testid="stSidebarNav"] a p { white-space: normal; }
+  .st-key-overview_details [data-testid="stHorizontalBlock"] { flex-direction: column; }
+  .st-key-overview_details [data-testid="stColumn"] { width: 100%; min-width: 0; flex: 1 1 auto; }
   [data-testid="stMainBlockContainer"] { padding-left: 1.5rem; padding-right: 1.5rem; }
   .st-key-auth_shell > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] { flex-direction: column; gap: 1.5rem; }
   .st-key-auth_shell [data-testid="stColumn"] { min-width: 100%; width: 100%; }
@@ -74,6 +116,19 @@ body:has(.st-key-auth_shell) [data-testid="stSidebarCollapsedControl"] { display
   .auth-footer { margin-top: .7rem; }
 }
 @media (max-width: 640px) {
+  body:has(.st-key-workspace_sidebar) { --workspace-sidebar-width: 8rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarHeader"] { padding: 1rem .6rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarLogo"] { max-width: 100%; height: auto; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarNavItems"] { padding: 0 .35rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarNav"] a { padding: .5rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarNav"] a p { font-size: .8rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarNav"] a > span:first-child { display: none; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stNavSectionHeader"] { padding-left: .5rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stNavSectionHeader"] > div { display: none; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stNavSectionHeader"] p { font-size: .72rem; }
+  body:has(.st-key-workspace_sidebar) [data-testid="stSidebarUserContent"] { padding: .75rem .6rem; }
+  body:has(.st-key-workspace_sidebar) .st-key-workspace_sidebar [data-testid="stCaptionContainer"] p { font-size: .72rem; overflow-wrap: anywhere; }
+  body:has(.st-key-workspace_sidebar) .st-key-summary_metrics { grid-template-columns: minmax(0, 1fr); }
   [data-testid="stMainBlockContainer"] { padding: 4.5rem 1rem 3rem; }
   .st-key-summary_metrics [data-testid="stMetricValue"] { font-size: 1.5rem; }
   .st-key-summary_metrics [data-testid="stMetricLabel"] { height: auto; min-height: 2.5rem; }

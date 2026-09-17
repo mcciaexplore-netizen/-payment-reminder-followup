@@ -36,7 +36,8 @@ else:
         st.metric("Payment promised",money_display(totals["promised"],currency),border=True)
         st.metric("In dispute",money_display(totals["disputed"],currency),border=True)
 
-    aging,activity=st.columns([1.7,1],gap="medium")
+    with st.container(key="overview_details"):
+        aging,activity=st.columns([1.7,1],gap="medium")
     with aging,st.container(border=True):
         st.subheader("How long has payment been due?")
         st.caption(f"Outstanding balances by invoice due date · {currency}")
@@ -51,7 +52,7 @@ else:
                 "color":{"condition":{"test":"datum.Age === 'Not due'","value":"#b2c6d5"},"value":"#146caa"},
                 "tooltip":[{"field":"Age","type":"nominal"},{"field":"Balance","type":"quantitative","format":",.2f","title":f"Balance ({currency})"}]
             },
-            "config":{"view":{"stroke":None},"font":"Candara, Segoe UI, sans-serif","axis":{"labelFont":"Candara, Segoe UI, sans-serif","labelFontSize":14,"labelColor":"#43576b","domain":False,"ticks":False,"gridColor":"#edf1f5"}}
+            "config":{"view":{"stroke":None},"font":"Candara, sans-serif","axis":{"labelFont":"Candara, sans-serif","labelFontSize":14,"labelColor":"#43576b","domain":False,"ticks":False,"gridColor":"#edf1f5"}}
         },width="stretch")
     with activity,st.container(border=True):
         st.subheader("Collection activity")

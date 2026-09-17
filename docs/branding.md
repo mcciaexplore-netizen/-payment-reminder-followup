@@ -1,7 +1,7 @@
 # MCCIA branding
 
 Verified against the [official MCCIA website](https://mcciapune.com/) on
-16 September 2026. The workspace and the legacy preview use the same branding.
+17 September 2026. The workspace and the legacy preview use the same branding.
 
 ## Original assets
 
@@ -20,17 +20,28 @@ the official website. These are MCCIA brand assets, not an original app logo.
 ## Typography
 
 The site's [main stylesheet](https://mcciapune.com/static/assets/scss/main.css)
-declares `font-family: "Candara", sans-serif` on the universal selector. Some
-buttons and sections override this with `Segoe` or `Segoe UI`. The homepage's
+declares `font-family: "Candara", sans-serif` on the universal selector. The live
+homepage's computed styles confirm these font roles:
+
+| Text | Official font declaration | App usage |
+| --- | --- | --- |
+| Body copy and form inputs | `Candara, sans-serif` | Body, inputs, tables, chart labels and customer portal copy |
+| Section headings | `Segoe, sans-serif`, weight 600 | Page and section headings |
+| Main navigation | `"Segoe UI", sans-serif`, weight 600 | Sidebar navigation and account area |
+| Action buttons | `Segoe, sans-serif`, weight 500 | Action buttons and customer portal buttons |
+
+The homepage's
 Poppins and Lato Google Fonts links are commented out; they are not its active
 main font.
 
-The app's Streamlit theme uses `Candara, 'Segoe UI', sans-serif` for body text
-and headings. Candara is installed on the current Windows machine. The official
-website does not provide a downloadable Candara webfont in its active stylesheet;
-no font binary is bundled or copied from Windows. On devices without Candara,
-text uses the next installed font in the fallback list. Matching typography on
-every device would require an appropriately licensed webfont.
+The app preserves those font declarations instead of assigning one family to all
+text. Candara is installed on the current Windows machine. The official stylesheet
+does not contain `@font-face` declarations or a downloadable Candara webfont;
+no font binary is bundled or copied from Windows. Each family falls back to the
+browser's sans-serif font when unavailable, just as on the official site. In
+particular, `Segoe` and `Segoe UI` are distinct family names; the official heading
+declaration is retained exactly. Matching typography on every device would
+require appropriately licensed webfonts.
 
 The reading scale uses a 17px base, 38px page headings and 23px section headings.
 Captions use a darker blue-gray (`#43576B`), field and summary labels have stronger
