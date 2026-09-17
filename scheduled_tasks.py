@@ -19,7 +19,7 @@ def _run_pass():
     worker = Worker(store, Connectors(store, Vault(store.key_directory)))
     results = worker.tick(limit=100, stop_requested=lambda: time.monotonic() >= deadline)
     with store.transaction() as db:
-        db.execute("INSERT OR REPLACE INTO ws_worker VALUES('cron',?,?)",
+        db.execute("INSERT INTO ws_worker VALUES('cron',?,?) ON CONFLICT(id) DO UPDATE SET heartbeat=excluded.heartbeat,detail=excluded.detail",
                    (utcnow().isoformat(), f"Processed {len(results)} reminders"))
     return {"processed": len(results)}
 

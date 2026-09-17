@@ -31,14 +31,14 @@ class WorkspaceStore(ReminderStore):
         self.remote = is_remote(path)
         if self.remote:
             self.path = validate_remote_url(path)
-            remote_credentials()
+            remote_credentials(self.path)
             self._initialize_schema()
         else:
             super().__init__(path)
         with closing(self.connect()) as db:
             db.executescript("""
             CREATE TABLE IF NOT EXISTS ws_schema(version INTEGER PRIMARY KEY);
-            INSERT OR IGNORE INTO ws_schema VALUES(1);
+            INSERT INTO ws_schema VALUES(1) ON CONFLICT DO NOTHING;
             CREATE TABLE IF NOT EXISTS ws_users(
                 id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS ws_sessions(

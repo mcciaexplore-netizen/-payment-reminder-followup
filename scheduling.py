@@ -251,10 +251,10 @@ class Worker:
                     unique=f"{rule['id']}:{row[0]}:{draft['invoice']['collection_due_date']}:{stage}"
                     # One stage per invoice, including across worker restarts and concurrent workers.
                     draft.update(cooldown_days=settings["cooldown_days"],stage=stage)
-                    cursor=db.execute("""INSERT OR IGNORE INTO ws_jobs(id,business_id,invoice_key,rule_id,unique_key,channel,mode,state,payload,due_at,created,authorized_by)
-                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",(secrets.token_hex(16),rule["business_id"],row[0],rule["id"],unique,settings["channel"],settings["mode"],"queued" if settings["auto_send"] else "awaiting_approval",encode(draft),now.isoformat(),now.isoformat(),rule["created_by"]))
+                    cursor=db.execute("""INSERT INTO ws_jobs(id,business_id,invoice_key,rule_id,unique_key,channel,mode,state,payload,due_at,created,authorized_by)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING""",(secrets.token_hex(16),rule["business_id"],row[0],rule["id"],unique,settings["channel"],settings["mode"],"queued" if settings["auto_send"] else "awaiting_approval",encode(draft),now.isoformat(),now.isoformat(),rule["created_by"]))
                     count+=cursor.rowcount
-            db.execute("INSERT OR REPLACE INTO ws_worker VALUES('scheduler',?,?)",(now.isoformat(),f"Queued {count} reminders"))
+            db.execute("INSERT INTO ws_worker VALUES('scheduler',?,?) ON CONFLICT(id) DO UPDATE SET heartbeat=excluded.heartbeat,detail=excluded.detail",(now.isoformat(),f"Queued {count} reminders"))
         return count
 
     def run_one(self,job_id=None,business=None):
@@ -323,7 +323,7 @@ class Worker:
 
     def _heartbeat(self, count):
         with self.store.transaction() as db:
-            db.execute("INSERT OR REPLACE INTO ws_worker VALUES('sender',?,?)",(self.clock().isoformat(),f"Processed {count} reminders"))
+            db.execute("INSERT INTO ws_worker VALUES('sender',?,?) ON CONFLICT(id) DO UPDATE SET heartbeat=excluded.heartbeat,detail=excluded.detail",(self.clock().isoformat(),f"Processed {count} reminders"))
 
     def tick(self,limit=100,business=None,stop_requested=None,on_progress=None):
         self.plan(business)

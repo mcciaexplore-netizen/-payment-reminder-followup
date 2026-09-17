@@ -95,7 +95,7 @@ class Connectors:
             values={"api_token":api_token or previous.get("api_token",""),"webhook_secret":webhook_secret or previous.get("webhook_secret","")}
             if any(not isinstance(v,str) or not 16<=len(v)<=4096 or any(c in v for c in "\r\n") for v in values.values()):
                 raise WorkspaceError("API and webhook secrets must contain 16–4096 characters without line breaks.")
-            db.execute("INSERT OR REPLACE INTO ws_connectors VALUES(?,?,?,?,?)",(business,kind,endpoint,self.vault.seal(values),int(enabled)))
+            db.execute("INSERT INTO ws_connectors VALUES(?,?,?,?,?) ON CONFLICT(business_id,kind) DO UPDATE SET endpoint=excluded.endpoint,secret=excluded.secret,enabled=excluded.enabled",(business,kind,endpoint,self.vault.seal(values),int(enabled)))
             self.store.audit(db,business,actor,"connector.saved",{"kind":kind,"endpoint":endpoint,"enabled":enabled},self.clock())
 
     def list(self, token, business):

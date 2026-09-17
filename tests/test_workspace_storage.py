@@ -21,7 +21,7 @@ from worker_health import is_healthy
 
 @pytest.fixture
 def storage_env(monkeypatch):
-    for key in ("WORKSPACE_DATABASE_URL", "TURSO_DATABASE_URL", "WORKSPACE_DATABASE_TOKEN",
+    for key in ("WORKSPACE_DATABASE_URL", "DATABASE_URL", "TURSO_DATABASE_URL", "WORKSPACE_DATABASE_TOKEN",
                 "TURSO_AUTH_TOKEN", "WORKSPACE_MASTER_KEY", "WORKSPACE_SETUP_TOKEN", "VERCEL",
                 "WORKSPACE_DATABASE_PATH", "CRON_SECRET", "WORKSPACE_SCHEDULER_MODE"):
         monkeypatch.delenv(key, raising=False)
