@@ -62,6 +62,17 @@ class Accounts:
                    (digest(token), user, (self.clock()+timedelta(hours=12)).isoformat()))
         return token
 
+    def register(self, email, password, name, timezone="Asia/Kolkata"):
+        email, hashed = email_address(email).casefold(), password_hash(password)
+        with self.store.transaction() as db:
+            existing = db.execute("SELECT id FROM ws_users WHERE email=?", (email,)).fetchone()
+            if existing:
+                raise WorkspaceError("An account with this email already exists. Please sign in.")
+            user = secrets.token_hex(16)
+            db.execute("INSERT INTO ws_users VALUES(?,?,?)", (user, email, hashed))
+            business = self._business(db, user, name, timezone)
+            return self._session(db, user), business
+
     def bootstrap(self, email, password, name, timezone="Asia/Kolkata", *, setup_token=""):
         expected = os.getenv("WORKSPACE_SETUP_TOKEN", "")
         if os.getenv("VERCEL") == "1" or expected or getattr(self.store,"remote",False):

@@ -19,12 +19,45 @@ attention=[r for r in jobs if r["state"] in {"unknown","failed","blocked","bounc
 rules=ctx["scheduling"].rules()
 
 if not reports:
-    with st.container(border=True):
-        st.subheader("Your collection workspace starts here")
-        st.write("Import your invoices to see outstanding balances, payment dates and customer follow-ups in one place.")
-        if st.button("Add your first invoices",type="primary",icon=":material/upload_file:"):
-            st.switch_page("app_pages/invoice_book.py")
-        st.caption("You can also download a sample workbook from Invoices & customers.")
+    st.html('''
+        <div class="empty-hero-card">
+            <div class="empty-hero-badge">GET STARTED</div>
+            <h2 class="empty-hero-title">Your Receivables &amp; Cash Flow Hub</h2>
+            <p class="empty-hero-sub">Bring your outstanding invoices, payment deadlines, and client communications into one intelligent workflow.</p>
+            <div class="empty-hero-grid">
+                <div class="empty-step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <strong>Upload Invoices</strong>
+                        <p>Import Excel or CSV files or enter invoices manually with client details.</p>
+                    </div>
+                </div>
+                <div class="empty-step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <strong>Set Reminder Rules</strong>
+                        <p>Configure automated multi-step policies before and after due dates.</p>
+                    </div>
+                </div>
+                <div class="empty-step-card">
+                    <div class="step-num">3</div>
+                    <div class="step-content">
+                        <strong>Collect on Time</strong>
+                        <p>Track promises, record incoming payments, and keep ledgers updated.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ''')
+    with st.container(key="empty_actions"):
+        c1, c2 = st.columns([1, 1], gap="medium")
+        with c1:
+            if st.button("Add your first invoices", type="primary", icon=":material/upload_file:", width="stretch"):
+                st.switch_page("app_pages/invoice_book.py")
+        with c2:
+            if st.button("Explore Schedules & Templates", icon=":material/tune:", width="stretch"):
+                st.switch_page("app_pages/policies.py")
+    st.caption("Need a starting template? Download our sample workbook directly from the Invoices page.")
 else:
     with st.container(horizontal=True,horizontal_alignment="distribute",vertical_alignment="center"):
         st.caption(f"{len(invoices)} invoices · {len({r['email'] for r in invoices})} customers in this workspace")

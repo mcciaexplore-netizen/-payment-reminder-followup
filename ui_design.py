@@ -19,15 +19,6 @@ PAGE_DESCRIPTIONS = {
 
 
 def page_heading(title, business_name, today):
-    st.html(
-        f'<div class="workspace-topline">'
-        f'  <div class="workspace-kicker-group">'
-        f'    <span class="mccia-badge">MCCIA</span>'
-        f'    <span class="workspace-kicker">{escape(business_name)}</span>'
-        f'  </div>'
-        f'  <span class="workspace-date">{today:%d %B %Y}</span>'
-        f'</div>'
-    )
     st.title(title)
     st.html(f'<p class="workspace-description">{escape(PAGE_DESCRIPTIONS.get(title, ""))}</p>')
 

@@ -16,3 +16,4 @@ reminder_history.csv
 tmp/
 backups/
 connector-key-backup
+output/

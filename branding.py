@@ -34,6 +34,7 @@ def configure_page(*, layout="wide"):
         page_icon=str(favicon) if favicon.exists() else "💼",
         layout=layout,
     )
+
     logo_b64 = get_logo_base64("mccia-logo.png")
     if logo_b64:
         st.logo(
@@ -42,6 +43,7 @@ def configure_page(*, layout="wide"):
             link=WEBSITE,
             icon_image=f"data:image/png;base64,{favicon_b64}" if favicon_b64 else None,
         )
+
     css_file = ASSETS / "workspace.css"
     if css_file.exists():
         st.html(f"<style>{css_file.read_text(encoding='utf-8')}</style>")
