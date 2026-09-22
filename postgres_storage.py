@@ -100,7 +100,7 @@ class PostgresConnection:
         sslmode = dict(parse_qsl(urlsplit(url).query)).get("sslmode", "require")
         self._connection = _call(psycopg.connect, url, autocommit=True,
                                  cursor_factory=psycopg.RawCursor, prepare_threshold=None,
-                                 connect_timeout=10, sslmode=sslmode)
+                                 connect_timeout=15, sslmode=sslmode)
 
     def _begin_write(self):
         _call(self._connection.execute, "BEGIN ISOLATION LEVEL READ COMMITTED")

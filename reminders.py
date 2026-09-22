@@ -109,7 +109,12 @@ class ReminderStore:
             """)
 
     def connect(self):
-        db = sqlite3.connect(self.path, timeout=10, isolation_level=None)
+        db = sqlite3.connect(self.path, timeout=15, isolation_level=None)
+        try:
+            db.execute("PRAGMA journal_mode=WAL;")
+            db.execute("PRAGMA busy_timeout=5000;")
+        except sqlite3.Error:
+            pass
         db.row_factory = sqlite3.Row
         return db
 
