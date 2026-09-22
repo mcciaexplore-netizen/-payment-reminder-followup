@@ -11,6 +11,18 @@ from config import SendSettings
 from reminders import ReminderService, ReminderStore
 
 
+import tempfile
+
+def pytest_configure(config):
+    basetemp = config.getoption("basetemp", None)
+    if basetemp:
+        Path(basetemp).mkdir(parents=True, exist_ok=True)
+    elif sys.platform == "win32":
+        win_temp = Path(tempfile.gettempdir()) / "py_workspace_temp"
+        win_temp.mkdir(parents=True, exist_ok=True)
+        config.option.basetemp = str(win_temp)
+
+
 @pytest.fixture
 def invoice():
     return dict(invoice_no="INV-001", client_name="Test Customer", email="customer@example.com",
