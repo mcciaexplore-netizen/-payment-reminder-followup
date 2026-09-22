@@ -11,10 +11,11 @@ def render_access(accounts, store):
     with st.container(key="auth_shell"):
         story, access = st.columns([1.18, 1], gap="large", vertical_alignment="top")
         with story, st.container(key="auth_story"):
-            st.html('<div class="auth-brand-badge"><span class="mccia-badge">MCCIA</span><span class="auth-brand-subtitle">AI Studio & Business Tools</span></div>')
             show_header_logo()
-            st.title("Payment follow-up")
-            st.html('''<p class="auth-lead">A clearer view of what’s due.<br>A simpler, respectful way to follow up.</p>
+            st.html('''
+                <div class="auth-eyebrow">INVOICES &amp; CASH FLOW FOR EVERY GROWING BUSINESS</div>
+                <h1 class="auth-hero-title">Know your cash.<br><span class="highlight-blue">Keep work moving.</span></h1>
+                <p class="auth-lead">One workspace for invoices, payment follow-ups, customer ledgers, and day-to-day cash flow.</p>
                 <div class="auth-feature-cards">
                     <div class="auth-feature-card">
                         <div class="feature-icon feature-icon-blue">01</div>
@@ -41,7 +42,8 @@ def render_access(accounts, store):
                 <div class="auth-org-badge">
                     <span class="auth-org-dot"></span>
                     <span>Mahratta Chamber of Commerce, Industries and Agriculture (MCCIA)</span>
-                </div>''')
+                </div>
+            ''')
         with access, st.container(key="auth_panel"):
             if not accounts.initialized():
 
