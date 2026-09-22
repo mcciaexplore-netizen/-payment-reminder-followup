@@ -33,15 +33,9 @@ def configure_page(*, layout="wide"):
         page_icon=str(favicon) if favicon.exists() else "💼",
         layout=layout,
     )
-    logo_file = ASSETS / "mccia-logo.png"
-    if logo_file.exists():
-        st.logo(
-            str(logo_file),
-            size="large",
-            link=WEBSITE,
-            icon_image=str(favicon) if favicon.exists() else None,
-        )
-    st.html(ASSETS / "workspace.css")
+    css_file = ASSETS / "workspace.css"
+    if css_file.exists():
+        st.html(f"<style>{css_file.read_text(encoding='utf-8')}</style>")
 
 
 def show_header_logo():
