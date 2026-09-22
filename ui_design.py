@@ -19,8 +19,15 @@ PAGE_DESCRIPTIONS = {
 
 
 def page_heading(title, business_name, today):
-    st.html(f'<div class="workspace-topline"><span class="workspace-kicker">'
-            f'{escape(business_name)} / Payment workspace</span><span>{today:%d %b %Y}</span></div>')
+    st.html(
+        f'<div class="workspace-topline">'
+        f'  <div class="workspace-kicker-group">'
+        f'    <span class="mccia-badge">MCCIA</span>'
+        f'    <span class="workspace-kicker">{escape(business_name)}</span>'
+        f'  </div>'
+        f'  <span class="workspace-date">{today:%d %B %Y}</span>'
+        f'</div>'
+    )
     st.title(title)
     st.html(f'<p class="workspace-description">{escape(PAGE_DESCRIPTIONS.get(title, ""))}</p>')
 
@@ -64,11 +71,18 @@ def invoice_table(rows, *, today=None, compact=False):
         return
     frame = pd.DataFrame(records)
     def status_style(value):
-        colors = {"Paid": ("#edf7f1", "#236244"), "Overdue": ("#fff3e8", "#915017"),
-                  "Part-paid · overdue": ("#fff3e8", "#915017"), "Disputed": ("#fceff0", "#a13d48"),
-                  "On hold": ("#f0f2f5", "#596778")}
-        bg, ink = colors.get(value, ("#edf5fb", "#235f8c"))
-        return f"background-color: {bg}; color: {ink};"
+        colors = {
+            "Paid": ("#ecfdf5", "#065f46", "#a7f3d0"),
+            "Overdue": ("#fff1f2", "#9f1239", "#fecdd3"),
+            "Part-paid · overdue": ("#fffbeb", "#92400e", "#fde68a"),
+            "Part-paid": ("#fefce8", "#854d0e", "#fef08a"),
+            "Upcoming": ("#f0f9ff", "#0369a1", "#bae6fd"),
+            "Disputed": ("#faf5ff", "#6b21a8", "#e9d5ff"),
+            "On hold": ("#f8fafc", "#475569", "#e2e8f0"),
+            "Cancelled": ("#f1f5f9", "#64748b", "#cbd5e1"),
+        }
+        bg, ink, bdr = colors.get(value, ("#f0f9ff", "#0369a1", "#bae6fd"))
+        return f"background-color: {bg}; color: {ink}; font-weight: 600; border-radius: 6px; padding: 2px 6px;"
     st.dataframe(frame.style.map(status_style, subset=["Status"]), hide_index=True,
                  height="auto" if compact else min(550, 44 + len(rows) * 38), row_height=38,
                  column_order=["Invoice", "Customer", "Due date", "Currency", "Outstanding", "Status"],
@@ -84,3 +98,4 @@ def status_list(items):
     lines = "".join(f'<div class="status-line"><dt>{escape(label)}</dt><dd>{escape(str(value))}</dd></div>'
                     for label, value in items)
     st.html('<dl class="status-list">' + lines + '</dl>')
+

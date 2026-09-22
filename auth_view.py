@@ -9,22 +9,42 @@ from workspace_store import WorkspaceError
 
 def render_access(accounts, store):
     with st.container(key="auth_shell"):
-        story, access = st.columns([1.12, 1], gap="large", vertical_alignment="top")
+        story, access = st.columns([1.18, 1], gap="large", vertical_alignment="top")
         with story, st.container(key="auth_story"):
+            st.html('<div class="auth-brand-badge"><span class="mccia-badge">MCCIA</span><span class="auth-brand-subtitle">AI Studio & Business Tools</span></div>')
             show_header_logo()
-            st.html('<div class="workspace-kicker">MCCIA · Business tools</div>')
             st.title("Payment follow-up")
-            st.html('''<p class="auth-lead">A clearer view of what’s due.<br>A simpler way to follow up.</p>
-                <ol class="auth-steps">
-                <li><span class="step-index">01</span><div><strong>Know where you stand</strong>
-                <p>Bring invoices, balances and customer details into one workspace.</p></div></li>
-                <li><span class="step-index">02</span><div><strong>Make each follow-up count</strong>
-                <p>Review reminders, respect payment promises and keep the right tone.</p></div></li>
-                <li><span class="step-index">03</span><div><strong>Keep a clear record</strong>
-                <p>Track receipts, installment plans and collection history.</p></div></li></ol>
-                <p class="auth-footer">Mahratta Chamber of Commerce, Industries and Agriculture</p>''')
+            st.html('''<p class="auth-lead">A clearer view of what’s due.<br>A simpler, respectful way to follow up.</p>
+                <div class="auth-feature-cards">
+                    <div class="auth-feature-card">
+                        <div class="feature-icon feature-icon-blue">01</div>
+                        <div class="feature-body">
+                            <strong>Know where you stand</strong>
+                            <p>Bring invoices, aging balances, and customer details into one consolidated dashboard.</p>
+                        </div>
+                    </div>
+                    <div class="auth-feature-card">
+                        <div class="feature-icon feature-icon-green">02</div>
+                        <div class="feature-body">
+                            <strong>Make each follow-up count</strong>
+                            <p>Generate polite, professional reminders, honor payment promises, and preserve customer trust.</p>
+                        </div>
+                    </div>
+                    <div class="auth-feature-card">
+                        <div class="feature-icon feature-icon-slate">03</div>
+                        <div class="feature-body">
+                            <strong>Keep an immutable record</strong>
+                            <p>Track payments, receipts, installment schedules, and complete collection audit trails.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-org-badge">
+                    <span class="auth-org-dot"></span>
+                    <span>Mahratta Chamber of Commerce, Industries and Agriculture (MCCIA)</span>
+                </div>''')
         with access, st.container(key="auth_panel"):
             if not accounts.initialized():
+
                 st.subheader("Set up your business")
                 protected = os.getenv("VERCEL")=="1" or bool(os.getenv("WORKSPACE_SETUP_TOKEN")) or store.remote
                 if protected and len(os.getenv("WORKSPACE_SETUP_TOKEN","")) < 32:

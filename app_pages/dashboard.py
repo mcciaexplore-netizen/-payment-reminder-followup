@@ -47,14 +47,14 @@ else:
         buckets=pd.DataFrame([{"Age":label,"Balance":float(totals[key])} for key,label in labels])
         st.vega_lite_chart(buckets,{
             "height":230,
-            "mark":{"type":"bar","cornerRadiusEnd":4,"height":19},
+            "mark":{"type":"bar","cornerRadiusEnd":6,"height":20},
             "encoding":{
                 "y":{"field":"Age","type":"nominal","sort":[label for _,label in labels],"axis":{"title":None,"labelPadding":12}},
                 "x":{"field":"Balance","type":"quantitative","axis":{"title":None,"format":"~s","tickCount":4}},
-                "color":{"condition":{"test":"datum.Age === 'Not due'","value":"#b2c6d5"},"value":"#146caa"},
+                "color":{"condition":{"test":"datum.Age === 'Not due'","value":"#94a3b8"},"value":"#146caa"},
                 "tooltip":[{"field":"Age","type":"nominal"},{"field":"Balance","type":"quantitative","format":",.2f","title":f"Balance ({currency})"}]
             },
-            "config":{"view":{"stroke":None},"font":"Candara, sans-serif","axis":{"labelFont":"Candara, sans-serif","labelFontSize":14,"labelColor":"#43576b","domain":False,"ticks":False,"gridColor":"#edf1f5"}}
+            "config":{"view":{"stroke":None},"font":"'Inter', -apple-system, sans-serif","axis":{"labelFont":"'Inter', -apple-system, sans-serif","labelFontSize":13,"labelColor":"#64748b","domain":False,"ticks":False,"gridColor":"#f1f5f9"}}
         },width="stretch")
     with activity,st.container(border=True):
         st.subheader("Collection activity")
