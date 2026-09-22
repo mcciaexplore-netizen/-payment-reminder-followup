@@ -12,9 +12,9 @@ def render_access(accounts, store):
         story, access = st.columns([1.18, 1], gap="large", vertical_alignment="top")
         with story, st.container(key="auth_story"):
             show_header_logo()
+            st.html('<div class="auth-eyebrow">INVOICES &amp; CASH FLOW FOR EVERY GROWING BUSINESS</div>')
+            st.title("Payment follow-up")
             st.html('''
-                <div class="auth-eyebrow">INVOICES &amp; CASH FLOW FOR EVERY GROWING BUSINESS</div>
-                <h1 class="auth-hero-title">Know your cash.<br><span class="highlight-blue">Keep work moving.</span></h1>
                 <p class="auth-lead">One workspace for invoices, payment follow-ups, customer ledgers, and day-to-day cash flow.</p>
                 <div class="auth-feature-cards">
                     <div class="auth-feature-card">

@@ -534,7 +534,8 @@ body:has(.st-key-auth_shell) [data-testid="stSidebarCollapsedControl"] {
   margin-bottom: 0.5rem;
 }
 
-.auth-hero-title {
+.auth-hero-title,
+.st-key-auth_story h1 {
   font-size: clamp(2.1rem, 3.2vw, 2.75rem) !important;
   font-weight: 800 !important;
   line-height: 1.15 !important;
