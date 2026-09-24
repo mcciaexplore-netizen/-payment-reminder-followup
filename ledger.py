@@ -220,3 +220,10 @@ class Ledger:
 
     def statement(self, email):
         return [r for r in self.invoices() if r["email"].casefold()==email.casefold()]
+
+    def process_bank_email(self, subject, body, received_on=None):
+        from bank_email import match_and_process_bank_email
+        with self.store.transaction() as db:
+            actor = self.auth(db, "collect")
+            return match_and_process_bank_email(db, self.store, self.business, subject, body, received_on, actor, self.clock())
+

@@ -205,16 +205,29 @@ def render_draft(db,business,key,channel,template_id,now):
     from urllib.parse import urlencode
     upi="upi://pay?"+urlencode({"pa":brand["upi_id"],"pn":brand.get("display_name") or company["name"],"am":inv["collection_balance"],"cu":"INR","tn":inv["invoice_no"]}) if brand.get("upi_id") and inv["currency"]=="INR" else ""
     if not template_id:
-        if language=="en" and brand.get("tone")=="firm":
-            body="Hello {client_name},\n\nPlease confirm payment arrangements for invoice {invoice_no}: {currency} {balance}, due {due_date}. Contact us promptly if the invoice is disputed.\n{payment_url}\n\n{business_name}"
-        elif language=="en" and brand.get("tone")=="formal":
-            body=body.replace("Hello ","Dear ").replace("Thank you,","Yours sincerely,")
+        from datetime import date
+        due_dt = date.fromisoformat(inv["collection_due_date"])
+        overdue_days = (today - due_dt).days
+        
+        # Dynamic Escalation Tone
+        effective_tone = brand.get("tone") or "polite"
+        if overdue_days > 21:
+            effective_tone = "formal"
+            subject = "FINAL NOTICE: Payment required for {invoice_no}"
+            body = "ATTENTION {client_name},\n\nYour account has an overdue balance of {currency} {balance} for invoice {invoice_no}, which was due on {due_date}. Immediate settlement is required to prevent further action.\n{payment_url}\n\nYours sincerely,\n{business_name}"
+        elif overdue_days >= 8:
+            effective_tone = "firm"
+            subject = "Urgent: Payment request for invoice {invoice_no}"
+            body = "Hello {client_name},\n\nPlease confirm payment arrangements for invoice {invoice_no}: {currency} {balance}, due {due_date}. Contact us promptly if the invoice is disputed.\n{payment_url}\n\n{business_name}"
+        elif effective_tone == "formal":
+            body = body.replace("Hello ", "Dear ").replace("Thank you,", "Yours sincerely,")
+
         if brand.get("terms"):
-            body+="\n\n{terms}"
+            body += "\n\n{terms}"
         if brand.get("reply_email"):
-            body+="\n{reply_email}"
+            body += "\n{reply_email}"
         if upi:
-            body+="\nUPI: {upi_url}"
+            body += "\nUPI: {upi_url}"
     values={"invoice_no":inv["invoice_no"],"client_name":inv["client_name"],"currency":inv["currency"],"balance":inv["collection_balance"],"due_date":inv["collection_due_date"],"business_name":brand.get("display_name") or company["name"],"payment_url":link[0] if link else "","terms":brand.get("terms",""),"reply_email":brand.get("reply_email",""),"upi_url":upi}
     validate_template(subject,body)
     subject,body=subject.format_map(values),body.format_map(values)

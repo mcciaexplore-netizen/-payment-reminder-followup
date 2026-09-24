@@ -37,6 +37,24 @@ with st.form("receipt_form"):
 if record:
     ctx["ledger"].receipt(inv["invoice_no"],value,kind,reference,received.isoformat())
     notify("Receipt recorded and invoice balance updated.")
+with st.expander("Process Bank Notification Email"):
+    st.caption("Paste a bank credit notification email (e.g. HDFC, ICICI, SBI, UPI credit alert). The app will extract the payment amount and UTR/reference, match it to an open invoice, record the receipt, and automatically halt future reminders.")
+    with st.form("bank_email_form"):
+        mail_subj=st.text_input("Email subject",placeholder="Credit Alert: Rs. 5,000 received for INV-1002")
+        mail_body=st.text_area("Email body text",height=140,placeholder="Your account AC-1234 has been credited by Rs. 5000.00 on 24-Sep-26. Ref/UTR: 426819203810. Remarks: Invoice INV-1002 payment")
+        process_email=st.form_submit_button("Process Bank Email & Update Invoice",type="primary")
+    if process_email:
+        if not mail_subj and not mail_body:
+            st.warning("Please enter the bank notification email details.")
+        else:
+            try:
+                res=ctx["ledger"].process_bank_email(mail_subj, mail_body)
+                msg=f"Payment of {res['amount_recorded']} recorded for {res['invoice_no']} ({res['client_name']}). Ref: {res['reference']}. Invoice status: {res['new_status'].upper()}."
+                if res['reminders_stopped']:
+                    msg+=" Future reminders for this invoice have been automatically stopped."
+                notify(msg)
+            except Exception as e:
+                st.error(f"Failed to process bank email: {e}")
 with st.expander("Payment links"):
     st.caption("The configured payment gateway creates links for the exact outstanding amount. Uncertain requests must be reconciled before another link is created.")
     if st.button("Create or retrieve payment link"):
